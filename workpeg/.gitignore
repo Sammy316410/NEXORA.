@@ -1,0 +1,17 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual environments (the SDK venv should live outside the repo anyway)
+venv/
+.venv/
+wpvenv/
+
+# Build output (workpeg ui build writes ui/dist/)
+dist/
+build/
+
+# Local bridge settings: contains NEXORA_BRIDGE_SECRET
+function/app/bridge_config.json
+.env
+.env.*
