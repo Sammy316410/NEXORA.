@@ -1,0 +1,380 @@
+{
+  "namespace": "nexora",
+  "summary": "NEXORA hotel operations: live guest requests for housekeeping, maintenance, food and front desk, room status and staff on duty, with tools to log, assign and update requests.",
+  "actions": [
+    {
+      "name": "list_open_requests",
+      "title": "List open guest requests",
+      "description": "Lists open NEXORA guest requests (pending, assigned or in progress) with code (e.g. NX-1042), room, department, priority, status and assignee. Filter by department and/or status. Use for backlog, 'what is still open' and workload questions; use get_request when the code is already known.",
+      "risk": "read",
+      "via": {
+        "table": "bridge",
+        "phase": "pre_save_hook"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "list_open_requests"
+            ],
+            "description": "Routing key for the NEXORA bridge; send exactly \"list_open_requests\"."
+          },
+          "department": {
+            "type": "string",
+            "enum": [
+              "housekeeping",
+              "maintenance",
+              "food",
+              "front_desk"
+            ],
+            "description": "Only requests for this department."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "assigned",
+              "in_progress"
+            ],
+            "description": "Only requests in this state. Omit for every open request."
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "name": "get_request",
+      "title": "Get one guest request",
+      "description": "Fetches one NEXORA guest request by its code (e.g. NX-1042): room, description, department, priority, status and assignee. Use before changing a request, or when someone names a specific code.",
+      "risk": "read",
+      "via": {
+        "table": "bridge",
+        "phase": "pre_save_hook"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "get_request"
+            ],
+            "description": "Routing key for the NEXORA bridge; send exactly \"get_request\"."
+          },
+          "code": {
+            "type": "string",
+            "description": "Request code exactly as NEXORA shows it, e.g. \"NX-1042\"."
+          }
+        },
+        "required": [
+          "action",
+          "code"
+        ]
+      }
+    },
+    {
+      "name": "assign_request",
+      "title": "Assign a guest request to a staff member",
+      "description": "Assigns a NEXORA guest request to a staff member by name, e.g. NX-1042 to Amaka Obi. Call list_staff first and use a name exactly as it returns it, choosing someone on duty in the request's department.",
+      "risk": "write",
+      "via": {
+        "table": "bridge",
+        "phase": "pre_save_hook"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "assign_request"
+            ],
+            "description": "Routing key for the NEXORA bridge; send exactly \"assign_request\"."
+          },
+          "code": {
+            "type": "string",
+            "description": "Request code exactly as NEXORA shows it, e.g. \"NX-1042\"."
+          },
+          "staff_name": {
+            "type": "string",
+            "description": "Staff member's name exactly as list_staff returns it."
+          }
+        },
+        "required": [
+          "action",
+          "code",
+          "staff_name"
+        ]
+      },
+      "confirm": "Assign {code} to {staff_name}?"
+    },
+    {
+      "name": "update_request_status",
+      "title": "Update a guest request's status",
+      "description": "Moves a NEXORA guest request to in_progress (work started), completed (done) or cancelled (will not be done), with an optional note. Use assign_request, not this, to choose who handles a request.",
+      "risk": "write",
+      "via": {
+        "table": "bridge",
+        "phase": "pre_save_hook"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "update_request_status"
+            ],
+            "description": "Routing key for the NEXORA bridge; send exactly \"update_request_status\"."
+          },
+          "code": {
+            "type": "string",
+            "description": "Request code exactly as NEXORA shows it, e.g. \"NX-1042\"."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "in_progress",
+              "completed",
+              "cancelled"
+            ],
+            "description": "The request's new status."
+          },
+          "note": {
+            "type": "string",
+            "description": "Optional note saved with the change, e.g. what was done or why it was cancelled."
+          }
+        },
+        "required": [
+          "action",
+          "code",
+          "status"
+        ]
+      },
+      "confirm": "Mark {code} as {status}?"
+    },
+    {
+      "name": "create_request",
+      "title": "Log a new guest request",
+      "description": "Logs a new guest request in NEXORA for a room from a plain-language description, e.g. room 204: two extra towels, or a leaking bathroom tap. Returns the created request with its code. Priority is optional: low, normal, high or urgent.",
+      "risk": "write",
+      "via": {
+        "table": "bridge",
+        "phase": "pre_save_hook"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "create_request"
+            ],
+            "description": "Routing key for the NEXORA bridge; send exactly \"create_request\"."
+          },
+          "room": {
+            "type": "string",
+            "description": "Room number as a string, e.g. \"204\"."
+          },
+          "description": {
+            "type": "string",
+            "description": "What the guest needs, in plain words, e.g. \"Two extra towels\"."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "normal",
+              "high",
+              "urgent"
+            ],
+            "description": "How urgent it is. Keep urgent for safety issues or a room the guest cannot use."
+          }
+        },
+        "required": [
+          "action",
+          "room",
+          "description"
+        ]
+      },
+      "confirm": "Log a new request for room {room}?"
+    },
+    {
+      "name": "list_rooms",
+      "title": "List rooms and their status",
+      "description": "Lists hotel rooms with their current status: available, occupied, cleaning or maintenance. Filter by one status, e.g. cleaning for rooms not ready yet, or available for rooms that can be sold now.",
+      "risk": "read",
+      "via": {
+        "table": "bridge",
+        "phase": "pre_save_hook"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "list_rooms"
+            ],
+            "description": "Routing key for the NEXORA bridge; send exactly \"list_rooms\"."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "occupied",
+              "cleaning",
+              "maintenance"
+            ],
+            "description": "Only rooms in this status. Omit for every room."
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "name": "set_room_status",
+      "title": "Change a room's status",
+      "description": "Sets a room's status to available, occupied, cleaning or maintenance, with an optional reason (e.g. AC not cooling). Use maintenance to take a room out of service and available once it is ready to sell again.",
+      "risk": "write",
+      "via": {
+        "table": "bridge",
+        "phase": "pre_save_hook"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "set_room_status"
+            ],
+            "description": "Routing key for the NEXORA bridge; send exactly \"set_room_status\"."
+          },
+          "room": {
+            "type": "string",
+            "description": "Room number as a string, e.g. \"204\"."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "occupied",
+              "cleaning",
+              "maintenance"
+            ],
+            "description": "The room's new status."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Optional reason, e.g. \"AC not cooling\"."
+          }
+        },
+        "required": [
+          "action",
+          "room",
+          "status"
+        ]
+      },
+      "confirm": "Set room {room} to {status}?"
+    },
+    {
+      "name": "list_staff",
+      "title": "List hotel staff",
+      "description": "Lists hotel staff with their department and whether they are on duty. Filter by department and set on_duty=true to see who can take work right now. Use the names it returns with assign_request.",
+      "risk": "read",
+      "via": {
+        "table": "bridge",
+        "phase": "pre_save_hook"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "list_staff"
+            ],
+            "description": "Routing key for the NEXORA bridge; send exactly \"list_staff\"."
+          },
+          "department": {
+            "type": "string",
+            "enum": [
+              "housekeeping",
+              "maintenance",
+              "food",
+              "front_desk"
+            ],
+            "description": "Only staff in this department."
+          },
+          "on_duty": {
+            "type": "boolean",
+            "description": "true for staff on shift now, false for staff off shift. Omit for everyone."
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "name": "shift_summary",
+      "title": "Summarise the current shift",
+      "description": "Returns NEXORA's overview of the current shift: open and overdue guest requests, room statuses and staff on duty. Start here for shift handovers, briefings and 'how are we doing' questions, then drill down with list_open_requests, list_rooms or list_staff.",
+      "risk": "read",
+      "via": {
+        "table": "bridge",
+        "phase": "pre_save_hook"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "shift_summary"
+            ],
+            "description": "Routing key for the NEXORA bridge; send exactly \"shift_summary\"."
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    }
+  ],
+  "skills": [
+    {
+      "name": "shift-handover",
+      "version": "1.0.0",
+      "title": "Shift handover",
+      "instructions": "Shift handover for NEXORA hotel operations.\n\nUse this at shift change, or whenever someone asks for a handover, a shift report or \"what is still open\". The goal is a short, accurate picture of open and overdue guest requests, plus proposed assignments the incoming team can accept.\n\n1. Gather the facts first (read-only tools)\n- shift_summary: the overall picture for the shift.\n- list_open_requests with no filters: every pending, assigned and in-progress request. If the list is long, call it once per department (housekeeping, maintenance, food, front_desk).\n- list_staff with on_duty=true: who can take work now, and in which department.\n- list_rooms with status=cleaning, then with status=maintenance: rooms that are not ready to sell.\n- get_request only for a request whose details are unclear.\nUse only what these tools return. Do not invent requests, rooms, codes or staff names, and quote request codes exactly as NEXORA gives them (for example NX-1042).\n\n2. Decide what is overdue\n- If NEXORA marks a request as overdue, or gives a due time that has passed, it is overdue.\n- Otherwise use these default response targets, counted from when the request was created: urgent 15 minutes, high 30 minutes, normal 2 hours, low 4 hours. Say in the handover that default targets were used.\n- If a request has no creation time, do not guess its age. List it as open and say its age is unknown.\n\n3. Write the handover\nKeep it short and scannable, in this order:\n- Headline: one line with the totals (open, overdue, unassigned).\n- Overdue: one line per request, most urgent first: code, room, department, priority, how late, assignee or \"unassigned\".\n- Unassigned but not overdue: same format.\n- In progress: code, room, assignee and any note.\n- Rooms not ready: rooms in cleaning or maintenance, with the reason when NEXORA gives one.\n- Watch-outs: repeat requests for the same room, urgent items, anything blocked.\nLeave out empty sections instead of writing \"none\".\n\n4. Propose assignments\nFor each overdue or unassigned request, propose one on-duty person from the matching department: housekeeping to housekeeping, maintenance to maintenance, food to food, front_desk to front desk staff.\n- Spread the load: prefer the person with the fewest open requests already assigned to them (count them from list_open_requests).\n- Do not propose anyone who is off duty or in another department. If nobody suitable is on duty, say so and suggest escalating to the duty manager.\n- Show the proposals as a numbered list: code, room, proposed person, a one-line reason.\n\n5. Act only after the person confirms\n- Ask which proposals to apply. Accept \"all\", a list of numbers, or changes such as \"give 3 to Bola instead\".\n- For each approved item call assign_request with the code and the staff member's name exactly as list_staff returned it.\n- Call update_request_status only when the person says a request has started, finished or been cancelled, and put their words in the note.\n- Call create_request only for a new issue the person reports during the handover.\n- Afterwards report each item: assigned, or the exact error NEXORA returned. One failure does not stop the rest.\n\n6. Tone\nBrief and factual. Tired staff read this at shift change, so lead with what needs action now.",
+      "tools": [
+        "shift_summary",
+        "list_open_requests",
+        "list_staff",
+        "list_rooms",
+        "get_request",
+        "assign_request",
+        "update_request_status",
+        "create_request"
+      ]
+    }
+  ],
+  "function": {
+    "entrypoint": "app.main:main"
+  },
+  "runtime": {
+    "default": "docker",
+    "docker": {
+      "host": "127.0.0.1",
+      "port": 8000
+    }
+  }
+}

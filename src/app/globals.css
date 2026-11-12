@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/* NEXORA design tokens (see the Product & Design Brief, "Design direction").
+   Native to Workpeg: Geist + Plus Jakarta Sans, Workpeg neutrals, black primary
+   actions, one blue accent. Status colours all pass WCAG AA (>= 5.7:1). */
+@theme {
+  --color-ink: #0d0d0d;
+  --color-ink-soft: #1c1c1c;
+  --color-muted: #6b6b70;
+  --color-canvas: #f5f5f5;
+  --color-surface: #ffffff;
+  --color-subtle: #fafafa;
+  --color-line: #ebebec;
+  --color-line-strong: #dedede;
+  --color-accent: #0064ff;
+  --color-accent-hover: #005be8;
+  --color-accent-subtle: #eef4ff;
+
+  --color-pending: #5b3fd6;
+  --color-pending-bg: #f1eeff;
+  --color-assigned: #0050cc;
+  --color-assigned-bg: #e3edff;
+  --color-progress: #8a5300;
+  --color-progress-bg: #fff4d6;
+  --color-done: #006b2e;
+  --color-done-bg: #e3f5ea;
+  --color-alert: #b8001c;
+  --color-alert-bg: #fde8ea;
+  --color-alert-solid: #ed0025;
+  --color-neutral: #4d4d52;
+  --color-neutral-bg: #f0f0f1;
+
+  --shadow-float: 0 12px 32px rgb(13 13 13 / 0.12);
+  --shadow-card: 0 1px 2px rgb(13 13 13 / 0.04);
+
+  --animate-flash: flash 2s ease-out;
+  --animate-pulse-soft: pulse-soft 1.6s ease-in-out infinite;
+  --animate-rise: rise 220ms ease-out;
+
+  @keyframes flash {
+    from {
+      background-color: var(--color-accent-subtle);
+    }
+    to {
+      background-color: transparent;
+    }
+  }
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Fonts come from next/font on <html>, so resolve them where they're used. */
+@theme inline {
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* The guest portal wears the hotel's brand; set per hotel on the guest shell. */
+  --color-hotel: var(--hotel-accent, #0f766e);
+  --color-hotel-canvas: var(--hotel-canvas, #fbf8f3);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
