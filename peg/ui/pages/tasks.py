@@ -19,12 +19,18 @@ class TasksPage(App):
     loading = State(True)
     error = State("")
     busy = State(False)
+    greeting = State("My tasks")
 
     async def on_mount(self):
+        on_table_change(self.changed)      # register BEFORE the first await
+        await self.load()
+        # Title after the first await: setting the Store while the shell is
+        # still drawing this page is a re-entrant render, which the runtime
+        # skips, leaving the page blank after an in-app navigation.
         store.page_title = "My tasks"
         set_title("NEXORA · My tasks")
-        on_table_change(self.changed)
-        await self.load()
+        first = user.name.strip()
+        self.greeting = f"Hi {first}" if first != "" else "My tasks"
 
     async def changed(self, event):
         await self.load()
@@ -88,7 +94,7 @@ class TasksPage(App):
         return Padding(
             Column(
                 PageHeader(
-                    f"Hi {user.name}",
+                    self.greeting,
                     "Your tasks, the one in hand first.",
                     Text(""),
                 ),

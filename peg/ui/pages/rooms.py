@@ -22,10 +22,13 @@ class RoomsPage(App):
     floor = State("")
 
     async def on_mount(self):
+        on_table_change(self.changed)      # register BEFORE the first await
+        await self.load()
+        # Title after the first await: setting the Store while the shell is
+        # still drawing this page is a re-entrant render, which the runtime
+        # skips, leaving the page blank after an in-app navigation.
         store.page_title = "Rooms"
         set_title("NEXORA · Rooms")
-        on_table_change(self.changed)
-        await self.load()
 
     async def changed(self, event):
         await self.load()

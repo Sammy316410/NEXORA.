@@ -25,7 +25,6 @@ class RequestPage(App):
     confirming = State(False)
 
     async def on_mount(self):
-        store.page_title = "Request"
         # route.* is a live read of the URL: capture it before any await.
         self.request_id = int(route.request_id)
         try:
@@ -41,6 +40,7 @@ class RequestPage(App):
         except Exception as e:
             self.error = e.message
         self.loading = False
+        store.page_title = "Request"   # after an await; see board.py
 
     async def load_staff(self):
         found = await workpeg.get_tables("staff")
