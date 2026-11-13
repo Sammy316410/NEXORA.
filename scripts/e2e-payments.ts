@@ -14,6 +14,8 @@ import { paymentsConfig } from "../src/lib/payments/config";
 import { paystackProvider } from "../src/lib/payments/providers/paystack";
 import { sandboxProvider, signSandboxPayload } from "../src/lib/payments/providers/sandbox";
 import { PaymentError } from "../src/lib/payments/types";
+import { getHotel, listStaff } from "../src/lib/hotel";
+import { getOverview } from "../src/lib/stats";
 import type { Actor } from "../src/lib/types";
 
 const CARD_OK = "4084 0840 8408 4081";
@@ -194,6 +196,18 @@ async function main() {
   const o4c = await cancelRequest(o4.id, guest);
   check("guest cancels the paid order before the kitchen starts: flagged for a refund", o4c.status === "cancelled" && o4c.follow_up && o4c.follow_up_note === "Refund ₦3,500: paid order cancelled", o4c.follow_up_note);
   check("…and the payment shows as credit on the bill", (await balance()) === beforeCancel - 350_000, await balance());
+  {
+    // The demo shift has several overdue requests, and the dashboard shows only
+    // the top 8 items: a refund must rank above them, not fall off the list.
+    const h = await getHotel();
+    const items = (await getOverview(h, await listStaff(h.id))).needsAttention;
+    const at = items.findIndex((a) => a.request.id === o4.id);
+    check(
+      "…and it tops the dashboard's Needs attention on a busy shift",
+      at >= 0 && items[at].reason === "refund" && items[at].label === "Refund ₦3,500" && items.slice(0, at).every((a) => a.reason === "refund"),
+      items.map((a) => `${a.request.code}: ${a.label}`),
+    );
+  }
 
   console.log("\nCancelled on the checkout page");
   const o5 = await order([["pepper-soup", 1]], "pay_now");
