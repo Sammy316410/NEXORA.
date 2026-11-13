@@ -5,7 +5,8 @@ staff) are made here, from a button the person presses.
 """
 from workpeg.ui import (
     App, State, Padding, Column, Row, Spacer, Text, Button, Table,
-    TableHeader, TableRow, TableCell, Modal, Form, Field, TextInput, Select,
+    TableHeader, TableRow, TableCell, Modal, Form, Field, Input, TextInput,
+    Select,
     biz_url, navigate, on_table_change, set_title, store, toast, workpeg,
     required,
 )
@@ -39,6 +40,7 @@ class BoardPage(App):
     what = State("")
     department = State("housekeeping")
     priority = State("normal")
+    room_options = State([])
 
     async def on_mount(self):
         on_table_change(self.changed)      # register BEFORE the first await
@@ -68,10 +70,23 @@ class BoardPage(App):
                 self.rows = rows
                 self.more = len(rows) == self.limit
                 self.derive()
+                await self.load_rooms()
             self.error = ""
         except Exception as e:
             self.error = e.message
         self.loading = False
+
+    async def load_rooms(self):
+        # Offer the business's own rooms in "Log a request", so names always
+        # match the Rooms page (e.g. "Westminster Room").
+        found = await workpeg.get_tables("rooms")
+        if len(found) == 0:
+            self.room_options = []
+            return
+        rooms = (await workpeg.get_rows(found[0]["uuid"], limit=500))[::-1]
+        self.room_options = [
+            {"value": r["data"]["number"], "label": r["data"]["number"]}
+            for r in rooms]
 
     def derive(self):
         rows = self.rows
@@ -204,7 +219,8 @@ class BoardPage(App):
         self.setting_up = False
 
     def open_add(self):
-        self.room = ""
+        self.room = (self.room_options[0]["value"]
+                     if len(self.room_options) > 0 else "")
         self.what = ""
         self.department = "housekeeping"
         self.priority = "normal"
@@ -228,12 +244,15 @@ class BoardPage(App):
     async def save(self, values):
         if self.saving or not self.ready:
             return
+        if self.room.strip() == "":
+            toast("Choose the room.", kind="warning")
+            return
         self.saving = True
         top = self.rows[0]["position"] if len(self.rows) > 0 else 0
         try:
             await workpeg.add_row(self.requests_table, {
                 "data": {"title": values["what"].strip(),
-                         "room": values["room"].strip(),
+                         "room": self.room.strip(),
                          "department": self.department,
                          "priority": self.priority,
                          "status": "new",
@@ -376,11 +395,20 @@ class BoardPage(App):
         else:
             return Button("Log request", kind="submit")
 
+    def room_input(self):
+        if len(self.room_options) > 0:
+            return Select(options=self.room_options, value=self.room,
+                          on_change=self.set_room, label="Room")
+        else:
+            return Input(TextInput(value=self.room, on_change=self.set_room,
+                                   autofocus=True),
+                         label="Room",
+                         hint="Add your rooms on the Rooms page to pick "
+                              "them from a list.")
+
     def add_form(self):
         return Form(
-            Field("room", TextInput(value=self.room, on_change=self.set_room,
-                                    autofocus=True),
-                  label="Room", validators=[required]),
+            self.room_input(),
             Field("what", TextInput(value=self.what, on_change=self.set_what),
                   label="What does the guest need?", validators=[required]),
             Select(

@@ -2,6 +2,7 @@
 person (matched by their email on the Staff page), with one big button."""
 from workpeg.ui import (
     App, State, Padding, Column, Row, Container, Expanded, Text, Button,
+    Select,
     biz_url, navigate, on_table_change, set_title, store, toast, user,
     workpeg,
 )
@@ -20,6 +21,9 @@ class TasksPage(App):
     error = State("")
     busy = State(False)
     greeting = State("My tasks")
+    viewing = State("")          # whose tasks: an email from the Staff page
+    people = State([])
+    people_options = State([])
 
     async def on_mount(self):
         on_table_change(self.changed)      # register BEFORE the first await
@@ -29,8 +33,6 @@ class TasksPage(App):
         # skips, leaving the page blank after an in-app navigation.
         store.page_title = "My tasks"
         set_title("NEXORA · My tasks")
-        first = user.name.strip()
-        self.greeting = f"Hi {first}" if first != "" else "My tasks"
 
     async def changed(self, event):
         await self.load()
@@ -41,22 +43,56 @@ class TasksPage(App):
                 found = await workpeg.get_tables("requests")
                 self.requests_table = (found[0]["uuid"] if len(found) > 0
                                        else "")
+            if self.viewing == "":
+                self.viewing = user.email.lower()
             if self.requests_table != "":
-                rows = await workpeg.get_rows(self.requests_table, limit=200)
-                me = user.email.lower()
-                self.rows = rows
-                # In progress first, then assigned: the job in hand on top.
-                doing = [r for r in rows
-                         if r["data"].get("assignee_email", "").lower() == me
-                         and r["data"].get("status", "") == "in_progress"]
-                todo = [r for r in rows
-                        if r["data"].get("assignee_email", "").lower() == me
-                        and r["data"].get("status", "") == "assigned"]
-                self.mine = doing + todo
+                self.rows = await workpeg.get_rows(self.requests_table,
+                                                   limit=200)
+                await self.load_people()
+                self.pick_mine()
             self.error = ""
         except Exception as e:
             self.error = e.message
         self.loading = False
+
+    async def load_people(self):
+        # "Viewing as": the desk can see any staff member's phone view, e.g.
+        # for staff who do not sign in to Workpeg themselves.
+        found = await workpeg.get_tables("staff")
+        if len(found) == 0:
+            return
+        people = await workpeg.get_rows(found[0]["uuid"], limit=200)
+        self.people = [p for p in people
+                       if p["data"].get("email", "").strip() != ""]
+        me = user.email.lower()
+        mine = [{"value": me, "label": "Me"}]
+        others = [{"value": p["data"]["email"].lower(),
+                   "label": p["data"]["name"]}
+                  for p in self.people
+                  if p["data"]["email"].lower() != me]
+        self.people_options = mine + others
+
+    def pick_mine(self):
+        who = self.viewing
+        # In progress first, then assigned: the job in hand on top.
+        doing = [r for r in self.rows
+                 if r["data"].get("assignee_email", "").lower() == who
+                 and r["data"].get("status", "") == "in_progress"]
+        todo = [r for r in self.rows
+                if r["data"].get("assignee_email", "").lower() == who
+                and r["data"].get("status", "") == "assigned"]
+        self.mine = doing + todo
+        person = next((p for p in self.people
+                       if p["data"]["email"].lower() == who), None)
+        if who != user.email.lower() and person is not None:
+            self.greeting = f"{person['data']['name']}'s tasks"
+        else:
+            first = user.name.strip()
+            self.greeting = f"Hi {first}" if first != "" else "My tasks"
+
+    def set_viewing(self, value):
+        self.viewing = value
+        self.pick_mine()
 
     async def retry(self):
         self.loading = True
@@ -95,9 +131,12 @@ class TasksPage(App):
             Column(
                 PageHeader(
                     self.greeting,
-                    "Your tasks, the one in hand first.",
+                    "The task in hand first, then what's next.",
                     Text(""),
                 ),
+                Select(options=self.people_options, value=self.viewing,
+                       on_change=self.set_viewing, label="Viewing as",
+                       visible=len(self.people_options) > 1),
                 self.body(),
                 gap=24,
             ),

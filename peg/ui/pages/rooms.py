@@ -1,9 +1,12 @@
 """Rooms: add them in a range, and keep each one's status current."""
 from workpeg.ui import (
     App, State, Padding, Column, Row, Spacer, Text, Button, Table,
-    TableHeader, TableRow, TableCell, Modal, Form, Field, TextInput, Select,
-    on_table_change, set_title, store, toast, workpeg, required, numeric,
+    TableHeader, TableRow, TableCell, Modal, Form, Input, TextInput, TextArea,
+    Select, Expanded,
+    on_table_change, set_title, store, toast, workpeg,
 )
+
+NEWLINE = "\n"
 
 from components import (
     EmptyState, ErrorState, LoadingState, PageHeader, RoomStatusTag,
@@ -20,6 +23,7 @@ class RoomsPage(App):
     first = State("")
     last = State("")
     floor = State("")
+    names = State("")
 
     async def on_mount(self):
         on_table_change(self.changed)      # register BEFORE the first await
@@ -52,6 +56,7 @@ class RoomsPage(App):
         await self.load()
 
     def open_add(self):
+        self.names = ""
         self.first = ""
         self.last = ""
         self.floor = ""
@@ -59,6 +64,9 @@ class RoomsPage(App):
 
     def close_add(self):
         self.adding = False
+
+    def set_names(self, value):
+        self.names = value
 
     def set_first(self, value):
         self.first = value
@@ -72,24 +80,42 @@ class RoomsPage(App):
     async def save(self, values):
         if self.saving or self.table == "":
             return
-        start = int(values["first"])
-        end = int(values["last"]) if values["last"].strip() != "" else start
-        if end < start or end - start > 199:
-            toast("Use a range of up to 200 rooms, lowest number first.",
-                  kind="warning")
+        # Names, one per line or comma separated (e.g. "Catalan Room").
+        wanted = []
+        cur = ""
+        for ch in self.names + NEWLINE:
+            if ch == NEWLINE or ch == ",":
+                if cur.strip() != "":
+                    wanted.append(cur.strip())
+                cur = ""
+            else:
+                cur = cur + ch
+        # And/or a number range (e.g. 101 to 110).
+        if self.first.strip() != "":
+            start = int(self.first)
+            end = int(self.last) if self.last.strip() != "" else start
+            if end < start or end - start > 199:
+                toast("Use a range of up to 200 rooms, lowest number first.",
+                      kind="warning")
+                return
+            for n in range(start, end + 1):
+                wanted.append(f"{n}")
+        if len(wanted) == 0:
+            toast("Type room names, or a number range.", kind="warning")
             return
         self.saving = True
-        have = [r["data"]["number"] for r in self.rows]
+        have = [r["data"]["number"].lower() for r in self.rows]
         top = 0
         for r in self.rows:
             if r["position"] > top:
                 top = r["position"]
         new_rows = []
-        for n in range(start, end + 1):
-            if f"{n}" not in have:
+        for room in wanted:
+            if room.lower() not in have:
+                have.append(room.lower())
                 top += 1000
                 new_rows.append({
-                    "data": {"number": f"{n}", "floor": values["floor"],
+                    "data": {"number": room, "floor": self.floor.strip(),
                              "status": "available"},
                     "position": top,
                 })
@@ -152,7 +178,7 @@ class RoomsPage(App):
         elif len(self.rows) == 0:
             return EmptyState(
                 "bed", "No rooms yet",
-                "Add them as a range, for example 101 to 120 on floor 1.",
+                "Add them by name (Catalan Room) or as a number range (101 to 120).",
                 Button("Add rooms", icon="plus", on_click=self.open_add),
             )
         else:
@@ -196,17 +222,22 @@ class RoomsPage(App):
 
     def add_form(self):
         return Form(
-            Field("first", TextInput(value=self.first,
-                                     on_change=self.set_first,
-                                     autofocus=True),
-                  label="From room", validators=[required, numeric]),
-            Field("last", TextInput(value=self.last,
-                                    on_change=self.set_last),
-                  label="To room (leave empty for one room)",
-                  validators=[numeric]),
-            Field("floor", TextInput(value=self.floor,
-                                     on_change=self.set_floor),
-                  label="Floor"),
+            Input(
+                TextArea(value=self.names, on_change=self.set_names, rows=5),
+                label="Room names",
+                hint="One per line, e.g. Catalan Room, Westminster Room.",
+            ),
+            Row(
+                Expanded(Input(TextInput(value=self.first,
+                                         on_change=self.set_first),
+                               label="Or numbers from")),
+                Expanded(Input(TextInput(value=self.last,
+                                         on_change=self.set_last),
+                               label="to")),
+                gap=16,
+            ),
+            Input(TextInput(value=self.floor, on_change=self.set_floor),
+                  label="Floor or wing", hint="Optional."),
             Row(
                 Spacer(),
                 Button("Cancel", variant="outline-gray",
