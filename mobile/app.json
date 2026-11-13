@@ -26,6 +26,16 @@
       "expo-secure-store",
       "expo-font"
     ],
-    "scheme": "nexora"
+    "scheme": "nexora",
+    "backgroundColor": "#F5F5F5",
+    "androidStatusBar": {
+      "backgroundColor": "#F5F5F5",
+      "barStyle": "dark-content",
+      "translucent": true
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#F5F5F5",
+      "barStyle": "dark-content"
+    }
   }
 }
