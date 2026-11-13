@@ -1,19 +1,9 @@
-FROM python:3.12-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-RUN useradd -m -u 10001 appuser
-
-WORKDIR /app
-
+# Workpeg builds functions without internet access, so start from Workpeg's
+# function base image (it already has the runtime) and install any extra
+# packages only from the vendored wheels/ folder.
+# Before submitting: pip download --only-binary=:all: --dest wheels -r requirements.txt
+FROM registry.gitlab.com/workpeg/workpeg-sdk/pegfn-base:0.157.0
+COPY wheels /wheels
 COPY requirements.txt /app/requirements.txt
-# Pinned to the SDK line this peg was built and tested with.
-RUN pip install --no-cache-dir "workpeg~=0.149.0"
-RUN pip install --no-cache-dir -r /app/requirements.txt
-
+RUN pip install --no-index --find-links=/wheels -r /app/requirements.txt
 COPY app /app/app
-
-USER appuser
-
-ENTRYPOINT ["workpeg", "function", "runtime", "--server"]

@@ -19,7 +19,8 @@ Workpeg AI --tool call--> platform --POST /invoke--> function/app/main.py --POST
 | `ui/dist/` | Build output from `workpeg ui build ui/` (gitignored). `ui/dist/manifest.json` is the file that gets uploaded to the CDN. |
 | `function/app/main.py` | The function, `main(context, payload)`. It works out which action was called, builds the actor from the context and POSTs to the bridge. It uses only the standard library and has a 15 s timeout. |
 | `function/app/bridge_config.json` | Optional and gitignored. It is a fallback for the two settings below (see Configuration). |
-| `function/Dockerfile` | The container image: python:3.12-slim, a non-root user, `ENTRYPOINT ["workpeg", "function", "runtime", "--server"]`, and the SDK pinned to `~=0.149.0`. |
+| `function/Dockerfile` | The container image. It starts from Workpeg's function base image `pegfn-base:0.157.0`, which already has the runtime, and installs packages only from `wheels/`, because Workpeg builds functions without internet access. |
+| `function/wheels/` | Vendored wheels for the offline build. Empty, because the function uses only the standard library. |
 | `function/requirements.txt` | Empty, because the function needs no extra packages. |
 | `function/tests/test_main.py` | Unit tests that run against a local `http.server` stub bridge. |
 | `function/tests/stub_bridge.py` | The stub bridge. The tests use it, and you can run it on its own for local runtime runs. |
@@ -31,7 +32,7 @@ The scaffold came from `workpeg project create nexora --path workpeg`.
 * `main(event, context=None)` is now `main(context, payload)`.
 * `runtime.default` was `"cracker"`, which is not implemented. It is now `"docker"`.
 * The scaffold said to run `workpeg run`, which does not exist. The README and docstring now use `workpeg function runtime`.
-* SDK 0.149.1 already ships the correct `ENTRYPOINT ["workpeg", "function", "runtime", "--server"]`, so I left it unchanged and only pinned the SDK version.
+* The Dockerfile now follows Workpeg's offline-build rule (13 Nov 2026): `FROM registry.gitlab.com/workpeg/workpeg-sdk/pegfn-base:0.157.0` instead of installing the SDK from PyPI.
 
 ## The actions
 
@@ -99,7 +100,7 @@ Create a venv outside the repo. The one used to build this peg is at
 ```powershell
 python -m venv $HOME\.venvs\workpeg
 & $HOME\.venvs\workpeg\Scripts\Activate.ps1
-pip install "workpeg~=0.149.0"
+pip install "workpeg>=0.157.0"
 cd workpeg
 ```
 
@@ -125,43 +126,40 @@ cd workpeg
 
 ## Hackathon day (Lagos, 13-14 Nov 2026)
 
-**Ask the organisers for these first.** Peg review normally takes up to 3 working days.
+What Workpeg told teams on Discord (11-13 Nov), and what it means here:
 
-1. A `WORKPEG_PK`. This is the JWT from developers.workpeg.com: open the peg, then **API & SDK**, then **Generate token**. It must belong to a peg whose namespace is `nexora`. You can check with:
-   `python -c "import base64,json,os; p=os.environ['WORKPEG_PK'].split('.')[1]; print(json.loads(base64.urlsafe_b64decode(p+'='*(-len(p)%4)))['peg_namespace'])"`
-   If you are given a different namespace, change `namespace` in `workpeg.json` and rebuild. The tool names become `peg_<namespace>.<action>`.
-2. Confirmation of the namespace (`nexora`) and that the tool names `peg_nexora.*` do not collide with anything.
-3. A test business with the peg installed. Develop against a separate business, never production.
-4. How to set `NEXORA_API_URL` and `NEXORA_BRIDGE_SECRET` on the installed function container. Otherwise, use `bridge_config.json`.
-5. How the `bridge` table alias gets created in that business, so phase actions can resolve it. Also whether function versions need review approval before they can be installed, and if so, a fast-track.
+* **`WORKPEG_PK` is only for publishing** (`workpeg function submit`, `workpeg cdn submit`, dev mode). The Tables API rejects it with HTTP 401; their docs said otherwise and are being fixed. So the web app's optional Tables mirror (`src/lib/workpeg.ts`) can't be used, and no table can be created with the key.
+* **Inside a function**, Workpeg passes a short-lived token in `context["token"]` and the business in `context["business"]` (about 15 minutes, that person and business only). Send it as `Authorization: Bearer <token>` if the function ever needs the Tables API.
+* **Functions can make outbound HTTPS calls**, which is all this peg needs: it calls NEXORA's bridge. The build has no internet, hence the base image above.
+* **There is no secret store for functions yet**, and Workpeg asks that keys are not put in code. Ask them how to give the function `NEXORA_API_URL` and `NEXORA_BRIDGE_SECRET`. Use `bridge_config.json` only if they say it's acceptable, and rotate the secret after the event.
+* **You don't publish yourselves.** Submit on the main branch; Workpeg reviews the peg, then publishes it and tells you when it's live.
+* **Dev pages need an approved peg.** A business can run `workpeg ui serve` dev pages only after Workpeg approves its first peg, and teammates must be members of the business that owns the peg. Use SDK 0.152.0 or newer (0.157.0 matches the base image), and keep `namespace` lowercase.
+* **Sign in with Workpeg is registered by Workpeg, not in the dashboard.** Send them the app name ("NEXORA"), every redirect URI (`https://<vercel-url>/auth/workpeg/callback` and `http://localhost:3000/auth/workpeg/callback`), that it is a server app (client secret), and the scopes `openid profile email`. They send the client ID and secret privately.
 
-**Then, from `workpeg/`:**
+### Steps, from `workpeg/`
 
 ```powershell
-$env:WORKPEG_PK = "<token>"                      # never commit it
-# 0. Point the UI link at the deployed dashboard (ui/main.py), make sure the
-#    deployed NEXORA has the same NEXORA_BRIDGE_SECRET, and run the tests.
+pip install --upgrade "workpeg>=0.157.0"
+$env:WORKPEG_PK = "<token from developers.workpeg.com>"   # never commit it
+
+# 0. Point the UI link at the deployed dashboard (ui/main.py) and run the tests.
+cd function; python -I -m unittest -v; cd ..
 workpeg ui build ui/
 
-# 1. Submit the function. Installs pull from the "main" branch only, and
-#    versions are immutable, so the second submit is main:1.0.1, and so on.
+# 1. Try the page locally (needs an approved peg in a developer business).
+workpeg ui serve ui/ --fake-cloud --peg-namespace nexora
+#    then open the app under /b/<business-uuid>/... while signed in to Workpeg.
+
+# 2. Vendor wheels (none today) and submit for review. Versions are immutable,
+#    so the next submit is main:1.0.1, and so on.
+cd function; pip download --only-binary=:all: --dest wheels -r requirements.txt; cd ..
 workpeg function submit main:1.0.0 --path function
-
-# 2. Publish the manifest to https://cdn.workpeg.com/pegs/nexora/manifest.json
-workpeg cdn submit ui/dist/manifest.json --path manifest.json --overwrite
-curl https://cdn.workpeg.com/pegs/nexora/manifest.json   # check it is live
-
-# 3. Create the bridge table in the test business, if the organisers have
-#    not already. This is UNVERIFIED: the REST shape comes from the Tables docs.
-curl -X POST "https://api.workpeg.com/v1/businesses/<business_uuid>/tables/" `
-  -H "Authorization: Bearer $env:WORKPEG_PK" -H "Content-Type: application/json" `
-  -d '{"name": "NEXORA bridge", "alias": "bridge", "columns": [{"id": "note", "name": "Note", "type": "text", "position": 1000}]}'
 ```
 
-4. In Workpeg AI, start a **new** chat, because action lists are cached for 15 minutes per chat. Ask "What requests are still open?", then turn on the skill with `/skill shift-handover` and ask for a handover.
+3. Once Workpeg says it's installed, start a **new** chat in Workpeg AI (action lists are cached for 15 minutes per chat). Ask "What requests are still open?", then `/skill shift-handover`.
 
-**If a tool never appears:** rebuild and check `ui/dist/manifest.json`. Then check that the CDN URL serves it, start a new chat, and confirm the tool name is under 64 characters and does not collide with another tool. Also ask whether `PEG_MANIFEST_CDN_BASE` is set on their deployment.
+**If a tool never appears:** rebuild, check `ui/dist/manifest.json`, start a new chat, and confirm the tool name is under 64 characters. Ask Workpeg whether the `bridge` table needs to exist in the business for the phase actions.
 
-**If a tool appears but fails:** the error text names the cause, such as a missing setting, HTTP 401 (secret mismatch), HTTP 404 from the bridge, or a timeout.
+**If a tool appears but fails:** the error text names the cause: a missing setting, HTTP 401 (secret mismatch), HTTP 404 from the bridge, or a timeout.
 
 **If you edit the skill:** bump its `version` in `workpeg.json`. A republished version number is ignored.
