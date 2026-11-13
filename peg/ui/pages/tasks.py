@@ -1,0 +1,163 @@
+"""My tasks: the staff view on a phone. Requests assigned to the signed-in
+person (matched by their email on the Staff page), with one big button."""
+from workpeg.ui import (
+    App, State, Padding, Column, Row, Container, Expanded, Text, Button,
+    biz_url, navigate, on_table_change, set_title, store, toast, user,
+    workpeg,
+)
+
+from components import (
+    DeptTag, EmptyState, ErrorState, LoadingState, PageHeader, PriorityTag,
+    StatusTag,
+)
+
+
+class TasksPage(App):
+    requests_table = State("")
+    rows = State([])
+    mine = State([])
+    loading = State(True)
+    error = State("")
+    busy = State(False)
+
+    async def on_mount(self):
+        store.page_title = "My tasks"
+        set_title("NEXORA · My tasks")
+        on_table_change(self.changed)
+        await self.load()
+
+    async def changed(self, event):
+        await self.load()
+
+    async def load(self):
+        try:
+            if self.requests_table == "":
+                found = await workpeg.get_tables("requests")
+                self.requests_table = (found[0]["uuid"] if len(found) > 0
+                                       else "")
+            if self.requests_table != "":
+                rows = await workpeg.get_rows(self.requests_table, limit=200)
+                me = user.email.lower()
+                self.rows = rows
+                # In progress first, then assigned: the job in hand on top.
+                doing = [r for r in rows
+                         if r["data"].get("assignee_email", "").lower() == me
+                         and r["data"].get("status", "") == "in_progress"]
+                todo = [r for r in rows
+                        if r["data"].get("assignee_email", "").lower() == me
+                        and r["data"].get("status", "") == "assigned"]
+                self.mine = doing + todo
+            self.error = ""
+        except Exception as e:
+            self.error = e.message
+        self.loading = False
+
+    async def retry(self):
+        self.loading = True
+        await self.load()
+
+    async def move(self, row_id, status, message):
+        if self.busy:
+            return
+        self.busy = True
+        try:
+            row = await workpeg.get_row(self.requests_table, row_id)
+            data = {}
+            for key in row["data"]:
+                data[key] = row["data"][key]
+            data["status"] = status
+            await workpeg.update_row(self.requests_table, row_id,
+                                     {"data": data})
+            toast(message, kind="success")
+            await self.load()
+        except Exception as e:
+            toast(e.message, kind="danger")
+            await self.load()
+        self.busy = False
+
+    async def start(self, row_id):
+        await self.move(row_id, "in_progress", "Started. Go get it!")
+
+    async def complete(self, row_id):
+        await self.move(row_id, "done", "Done. Nice work!")
+
+    def open_request(self, row_id):
+        navigate(biz_url(f"/requests/{row_id}"))
+
+    def build(self):
+        return Padding(
+            Column(
+                PageHeader(
+                    f"Hi {user.name}",
+                    "Your tasks, the one in hand first.",
+                    Text(""),
+                ),
+                self.body(),
+                gap=24,
+            ),
+            all=24,
+        )
+
+    def body(self):
+        if self.loading:
+            return LoadingState("Loading your tasks...")
+        elif self.error != "":
+            return ErrorState(
+                self.error,
+                Button("Try again", variant="outline-gray", icon="refresh",
+                       on_click=self.retry),
+            )
+        elif self.requests_table == "":
+            return EmptyState(
+                "building", "NEXORA isn't set up here yet",
+                "Ask a manager to set it up, or check you are in the right "
+                "business.",
+                Text(""),
+            )
+        elif len(self.mine) == 0:
+            return EmptyState(
+                "circle-check", "You're all caught up",
+                "New tasks show up here as soon as the desk assigns them. "
+                "If none ever do, ask a manager to add your email on the "
+                "Staff page.",
+                Text(""),
+            )
+        else:
+            return Column(
+                *[Container(
+                    Column(
+                        Row(
+                            Expanded(
+                                Column(
+                                    Text("ROOM", variant="caption"),
+                                    Text(r["data"]["room"],
+                                         variant="heading"),
+                                    gap=4,
+                                ),
+                            ),
+                            StatusTag(r["data"].get("status", "")),
+                            align="start", gap=8,
+                        ),
+                        Text(r["data"]["title"], weight="semibold"),
+                        Row(
+                            DeptTag(r["data"].get("department", "")),
+                            PriorityTag(r["data"].get("priority", "normal")),
+                            gap=8,
+                        ),
+                        Button("Start task", icon="player-play", size="lg",
+                               on_click=lambda: self.start(r["id"]),
+                               visible=r["data"].get("status", "")
+                               == "assigned"),
+                        Button("Mark complete", icon="check", size="lg",
+                               on_click=lambda: self.complete(r["id"]),
+                               visible=r["data"].get("status", "")
+                               == "in_progress"),
+                        Button("Details", variant="link-gray",
+                               icon="chevron-right", icon_position="right",
+                               on_click=lambda: self.open_request(r["id"])),
+                        gap=16,
+                    ),
+                    variant="card", padding=24,
+                ) for r in self.mine],
+                gap=16,
+            )

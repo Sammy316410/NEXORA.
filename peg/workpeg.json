@@ -1,0 +1,194 @@
+{
+  "namespace": "nexora",
+  "sdk": "0.163.0",
+  "summary": "Hospitality operations: guest requests routed to housekeeping, maintenance, kitchen and front desk, with rooms, staff on duty and who is handling what.",
+  "dev": {
+    "others": "deny"
+  },
+  "actions": [
+    {
+      "name": "list_requests",
+      "title": "List guest requests",
+      "description": "Lists guest requests, newest first: request, room, department (housekeeping, maintenance, food, front_desk), priority (low, normal, high, urgent), status (new, assigned, in_progress, done, cancelled; empty means new), who it is assigned to, guest and note. Filter by status, department or room.",
+      "risk": "read",
+      "via": {
+        "table": "requests",
+        "operation": "list",
+        "fields": {
+          "title": "Request",
+          "room": "Room",
+          "department": "Department",
+          "priority": "Priority",
+          "status": "Status",
+          "assignee": "Assigned to",
+          "assignee_email": "Assignee email",
+          "guest": "Guest",
+          "note": "Note"
+        },
+        "filters": [
+          "status",
+          "department",
+          "room"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "get_request",
+      "title": "Read a guest request",
+      "description": "Reads one guest request by its row id: request, room, department, priority, status, assignee, guest and note.",
+      "risk": "read",
+      "via": {
+        "table": "requests",
+        "operation": "get",
+        "fields": {
+          "title": "Request",
+          "room": "Room",
+          "department": "Department",
+          "priority": "Priority",
+          "status": "Status",
+          "assignee": "Assigned to",
+          "assignee_email": "Assignee email",
+          "guest": "Guest",
+          "note": "Note"
+        }
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "create_request",
+      "title": "Log a guest request",
+      "description": "Logs a new guest request for a room, e.g. room 204: two extra towels. department is housekeeping, maintenance, food or front_desk; priority is low, normal, high or urgent (urgent only for safety or a room the guest cannot use). Leave status empty: a new request is new.",
+      "risk": "write",
+      "confirm": "Log a request for room {room}?",
+      "via": {
+        "table": "requests",
+        "operation": "create",
+        "fields": {
+          "title": "Request",
+          "room": "Room",
+          "department": "Department",
+          "priority": "Priority",
+          "guest": "Guest",
+          "note": "Note"
+        }
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "update_request",
+      "title": "Update a guest request",
+      "description": "Changes a guest request by row id. To assign: status assigned, assignee a name exactly as list_staff gives it, and assignee_email that person's email. Other statuses: in_progress, done, cancelled. Can also change priority or add a note.",
+      "risk": "write",
+      "confirm": "Update request {id}?",
+      "via": {
+        "table": "requests",
+        "operation": "update",
+        "fields": {
+          "status": "Status",
+          "assignee": "Assigned to",
+          "assignee_email": "Assignee email",
+          "priority": "Priority",
+          "note": "Note"
+        }
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "list_rooms",
+      "title": "List rooms",
+      "description": "Lists rooms with floor, status (available, occupied, cleaning, maintenance) and guest. Filter by status, e.g. cleaning for rooms not ready yet.",
+      "risk": "read",
+      "via": {
+        "table": "rooms",
+        "operation": "list",
+        "fields": {
+          "number": "Room",
+          "floor": "Floor",
+          "status": "Status",
+          "guest": "Guest"
+        },
+        "filters": [
+          "status"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "update_room",
+      "title": "Change a room",
+      "description": "Changes a room by its number or row id: status (available, occupied, cleaning, maintenance) or guest. maintenance takes it out of service.",
+      "risk": "write",
+      "confirm": "Update room {number}?",
+      "via": {
+        "table": "rooms",
+        "operation": "update",
+        "fields": {
+          "number": "Room",
+          "status": "Status",
+          "guest": "Guest"
+        },
+        "key": "number"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "list_staff",
+      "title": "List staff",
+      "description": "Lists staff with email, department (housekeeping, maintenance, food, front_desk) and whether they are on duty. Filter by department or on_duty to see who can take work now.",
+      "risk": "read",
+      "via": {
+        "table": "staff",
+        "operation": "list",
+        "fields": {
+          "name": "Name",
+          "email": "Email",
+          "department": "Department",
+          "on_duty": "On duty"
+        },
+        "filters": [
+          "department",
+          "on_duty"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "skills": [
+    {
+      "name": "shift-handover",
+      "version": "2.0.0",
+      "title": "Shift handover",
+      "instructions": "Shift handover for NEXORA.\n\nUse this at shift change or when someone asks for a handover, a shift report or what is still open.\n\n1. Gather facts with the read tools only: list_requests (status new, then assigned, then in_progress), list_staff with on_duty true, and list_rooms with status cleaning and then maintenance. Use only what they return; never invent requests, rooms or names. Name a request by room and request, e.g. Room 311 - AC not cooling.\n\n2. Write the handover, short and scannable:\n- Headline: totals of new, assigned and in progress.\n- Unassigned (status new or empty): room, request, department, priority. Urgent and high first.\n- In hand: room, request, who has it.\n- Rooms not ready: cleaning or out of service.\nLeave out empty sections.\n\n3. Propose an owner for each unassigned request: someone on duty in the matching department, preferring whoever has the fewest requests already. If nobody suitable is on duty, say so and suggest the duty manager. Show proposals as a numbered list.\n\n4. Act only after the person confirms which to apply. For each, call update_request with status assigned, assignee the name exactly as list_staff gave it, and assignee_email that person's email. Report each result; one failure does not stop the rest.\n\nBe brief and factual: tired staff read this at shift change.",
+      "tools": [
+        "list_requests",
+        "get_request",
+        "list_staff",
+        "list_rooms",
+        "update_request",
+        "create_request"
+      ]
+    }
+  ]
+}

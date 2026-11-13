@@ -1,0 +1,6 @@
+# Build output (workpeg ui build)
+ui/dist/
+__pycache__/
+*.py[cod]
+.env
+.env.*
