@@ -102,12 +102,13 @@ function Hero() {
         <div className="mx-auto max-w-4xl text-center">
           <Link
             href="#workpeg"
-            className="inline-flex animate-rise items-center gap-2 rounded-full border border-white/15 bg-white/5 py-1 pr-3 pl-1 text-xs text-white/80 backdrop-blur transition hover:border-white/30"
+            className="inline-flex max-w-full animate-rise items-center gap-2 rounded-2xl border border-white/15 bg-white/5 py-1 pr-3 pl-1 text-left text-xs text-white/80 backdrop-blur transition hover:border-white/30 sm:rounded-full"
           >
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-0.5 font-semibold text-ink">
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-2 py-0.5 font-semibold whitespace-nowrap text-ink">
               <WorkpegMark onDark={false} className="size-3.5" /> Native to Workpeg
             </span>
-            Ask Workpeg AI for your shift handover <ArrowRight className="size-3.5" aria-hidden="true" />
+            <span className="leading-snug">Ask Workpeg AI for your shift handover</span>
+            <ArrowRight className="size-3.5 shrink-0" aria-hidden="true" />
           </Link>
 
           <h1 className="mt-7 font-display text-[2.75rem] leading-[0.98] font-extrabold tracking-tight text-balance sm:text-7xl lg:text-[5.5rem]">
@@ -266,7 +267,7 @@ function HowItWorks() {
     <section id="how" className="scroll-mt-24 border-y border-line bg-surface py-28">
       <div className="mx-auto max-w-6xl px-5">
         <SectionHead eyebrow="How it works" title="Three people. One live request." sub="Everyone looks at the same record, so nothing is lost when a request passes from one person to the next." center />
-        <ol className="relative mt-16 grid gap-6 lg:grid-cols-3">
+        <ol className="relative mt-16 grid gap-14 lg:grid-cols-3 lg:gap-6">
           <span aria-hidden="true" className="absolute top-10 right-[16%] left-[16%] hidden h-px bg-[linear-gradient(to_right,var(--color-line-strong)_50%,transparent_50%)] bg-[size:12px_1px] lg:block" />
           {steps.map(({ n, who, icon: Icon, tone, title, body }) => (
             <li key={n} className="relative flex flex-col items-center text-center">
@@ -511,8 +512,12 @@ function Footer() {
     <footer className="border-t border-line bg-surface">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-muted sm:flex-row">
         <NexoraLogo />
-        <p className="flex items-center gap-2">
-          Built on <WorkpegMark onDark={false} className="size-4" /> Workpeg · Workpeg Hospitality Hackathon, Lagos 2026
+        <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
+          <span className="inline-flex items-center gap-2 whitespace-nowrap">
+            Built on <WorkpegMark onDark={false} className="size-4" /> Workpeg
+          </span>
+          <span aria-hidden="true" className="hidden sm:inline">·</span>
+          <span>Workpeg Hospitality Hackathon, Lagos 2026</span>
         </p>
       </div>
     </footer>
