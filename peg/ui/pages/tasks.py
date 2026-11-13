@@ -32,7 +32,7 @@ class TasksPage(App):
         # still drawing this page is a re-entrant render, which the runtime
         # skips, leaving the page blank after an in-app navigation.
         store.page_title = "My tasks"
-        set_title("NEXORA · My tasks")
+        set_title("NEXORA - My tasks")
 
     async def changed(self, event):
         await self.load()
@@ -70,7 +70,9 @@ class TasksPage(App):
                    "label": p["data"]["name"]}
                   for p in self.people
                   if p["data"]["email"].lower() != me]
-        self.people_options = mine + others
+        for o in others:
+            mine.append(o)
+        self.people_options = mine
 
     def pick_mine(self):
         who = self.viewing
@@ -81,7 +83,10 @@ class TasksPage(App):
         todo = [r for r in self.rows
                 if r["data"].get("assignee_email", "").lower() == who
                 and r["data"].get("status", "") == "assigned"]
-        self.mine = doing + todo
+        # list + list compiles to JS string concatenation: extend instead.
+        for r in todo:
+            doing.append(r)
+        self.mine = doing
         person = next((p for p in self.people
                        if p["data"]["email"].lower() == who), None)
         if who != user.email.lower() and person is not None:

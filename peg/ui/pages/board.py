@@ -49,7 +49,7 @@ class BoardPage(App):
         # still drawing this page is a re-entrant render, which the runtime
         # skips, leaving the page blank after an in-app navigation.
         store.page_title = "Board"
-        set_title("NEXORA · Board")
+        set_title("NEXORA - Board")
 
     async def changed(self, event):
         await self.load()

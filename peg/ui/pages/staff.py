@@ -29,7 +29,7 @@ class StaffPage(App):
         # still drawing this page is a re-entrant render, which the runtime
         # skips, leaving the page blank after an in-app navigation.
         store.page_title = "Staff"
-        set_title("NEXORA · Staff")
+        set_title("NEXORA - Staff")
 
     async def changed(self, event):
         await self.load()

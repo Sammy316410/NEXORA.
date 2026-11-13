@@ -53,10 +53,16 @@ class RequestPage(App):
                 and p["data"].get("department", "") == dept]
         others = [p for p in people if p["data"].get("on_duty", False)
                   and p["data"].get("department", "") != dept]
-        self.staff = team + others
+        # list + list compiles to JS string concatenation: extend instead.
+        merged = []
+        for p in team:
+            merged.append(p)
+        for p in others:
+            merged.append(p)
+        self.staff = merged
         self.staff_options = [
             {"value": p["data"]["name"],
-             "label": p["data"]["name"] + " · " + self.team_name(
+             "label": p["data"]["name"] + " - " + self.team_name(
                  p["data"].get("department", ""))}
             for p in self.staff]
         if len(self.staff) > 0:
@@ -78,7 +84,7 @@ class RequestPage(App):
         self.row = row
         self.status = row["data"].get("status", "new")
         self.note = row["data"].get("note", "")
-        set_title(f"Room {row['data']['room']} · {row['data']['title']}")
+        set_title(f"{row['data']['room']} - {row['data']['title']}")
 
     def set_pick(self, value):
         self.pick = value
@@ -164,7 +170,7 @@ class RequestPage(App):
                         Link("Board", href=biz_url("/"), icon="arrow-left"),
                         Column(
                             Row(
-                                Text(f"Room {self.row['data']['room']}",
+                                Text(self.row["data"]["room"],
                                      variant="heading"),
                                 StatusTag(self.status),
                                 align="center", gap=8,

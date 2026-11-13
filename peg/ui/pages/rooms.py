@@ -32,7 +32,7 @@ class RoomsPage(App):
         # still drawing this page is a re-entrant render, which the runtime
         # skips, leaving the page blank after an in-app navigation.
         store.page_title = "Rooms"
-        set_title("NEXORA · Rooms")
+        set_title("NEXORA - Rooms")
 
     async def changed(self, event):
         await self.load()
