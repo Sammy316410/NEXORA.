@@ -1,6 +1,6 @@
 // Hotel-level operations: rooms, reservations, guest access, staff.
 import { randomBytes, randomInt } from "node:crypto";
-import { db } from "./db";
+import { db, exactIlike, sameText } from "./db";
 import { ping, topics } from "./realtime";
 import { createRequest, EngineError } from "./requests";
 import { todayISO } from "./format";
@@ -93,8 +93,10 @@ export async function listRooms(hotel: Hotel): Promise<RoomView[]> {
 }
 
 export async function findRoomByNumber(hotelId: string, number: string): Promise<Room | null> {
-  const { data } = await db().from("rooms").select("*").eq("hotel_id", hotelId).eq("number", number.trim()).maybeSingle();
-  return (data as Room | null) ?? null;
+  // Case-insensitive, so "a12" finds room A12.
+  const { data } = await db().from("rooms").select("*").eq("hotel_id", hotelId).ilike("number", exactIlike(number.trim())).maybeSingle();
+  const room = (data as Room | null) ?? null;
+  return room && sameText(room.number, number) ? room : null;
 }
 
 export async function setRoomStatus(roomId: string, status: RoomStatus, _actor: Actor, note?: string | null): Promise<Room> {
