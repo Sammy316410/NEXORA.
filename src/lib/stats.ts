@@ -18,7 +18,7 @@ export function dayStart(tz: string, offsetDays = 0, now = Date.now()): number {
   return Date.parse(`${date}T00:00:00Z`) - offset;
 }
 
-export type AttentionReason = "overdue" | "waiting" | "urgent" | "not_resolved" | "follow_up";
+export type AttentionReason = "refund" | "overdue" | "waiting" | "urgent" | "not_resolved" | "follow_up";
 
 export interface AttentionItem {
   request: RequestView;
@@ -62,23 +62,32 @@ export async function getOverview(hotel: Hotel, staff: Staff[]): Promise<Overvie
   const count = (s: string) => roomStatuses.filter((r) => r.status === s).length;
   const stays = (staysRes.data as { status: string; check_in: string; check_out: string }[]) ?? [];
 
+  // Money owed back to a guest (paid twice, paid after a cancel, or a paid
+  // order cancelled) ranks first, so the cap below never hides it.
+  const refundLabel = (r: RequestView) => (r.follow_up && r.follow_up_note?.startsWith("Refund ") ? r.follow_up_note.split(":")[0] : null);
+
   const needsAttention: AttentionItem[] = [];
   for (const r of openRequests) {
     const due = dueState(r, now);
     const wait = waitingMinutes(r, now);
-    if (due.kind === "overdue") needsAttention.push({ request: r, reason: "overdue", label: due.label });
+    const refund = refundLabel(r);
+    if (refund) needsAttention.push({ request: r, reason: "refund", label: refund });
+    else if (due.kind === "overdue") needsAttention.push({ request: r, reason: "overdue", label: due.label });
     else if (wait !== null) needsAttention.push({ request: r, reason: "waiting", label: `Waiting ${wait} min` });
     else if (r.priority === "urgent") needsAttention.push({ request: r, reason: "urgent", label: "Urgent" });
     else if (r.follow_up) needsAttention.push({ request: r, reason: "follow_up", label: "Needs follow-up" });
   }
   for (const r of followUps) {
-    if (r.guest_feedback === "down" && r.follow_up) {
+    const refund = refundLabel(r);
+    if (refund) {
+      needsAttention.push({ request: r, reason: "refund", label: refund });
+    } else if (r.guest_feedback === "down" && r.follow_up) {
       needsAttention.push({ request: r, reason: "not_resolved", label: "Guest says not resolved" });
     } else if (r.follow_up) {
       needsAttention.push({ request: r, reason: "follow_up", label: "Needs follow-up" });
     }
   }
-  const reasonRank: Record<AttentionReason, number> = { overdue: 0, not_resolved: 1, urgent: 2, waiting: 3, follow_up: 4 };
+  const reasonRank: Record<AttentionReason, number> = { refund: 0, overdue: 1, not_resolved: 2, urgent: 3, waiting: 4, follow_up: 5 };
   needsAttention.sort(
     (a, b) =>
       reasonRank[a.reason] - reasonRank[b.reason] ||

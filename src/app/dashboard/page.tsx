@@ -15,7 +15,7 @@ import { RequestDrawer } from "@/components/dashboard/request-drawer";
 
 export const metadata: Metadata = { title: "Overview" };
 
-const ATTENTION_TONE = { overdue: "alert", not_resolved: "alert", urgent: "alert", waiting: "progress", follow_up: "neutral" } as const;
+const ATTENTION_TONE = { refund: "alert", overdue: "alert", not_resolved: "alert", urgent: "alert", waiting: "progress", follow_up: "neutral" } as const;
 
 // M2: "What needs me right now?" answered within five seconds.
 export default async function OverviewPage({ searchParams }: { searchParams: Promise<{ r?: string }> }) {
