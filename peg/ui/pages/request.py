@@ -1,6 +1,6 @@
 """One guest request: who has it, and moving it to done."""
 from workpeg.ui import (
-    App, State, Padding, Column, Row, Container, ConstrainedBox, Expanded,
+    App, ListView, State, Padding, Column, Row, Container, ConstrainedBox, Expanded,
     Spacer, Text, Button, Input, TextArea, Select, Divider, Link, Modal,
     biz_url, dates, navigate, route, set_title, store, toast, workpeg,
 )
@@ -155,16 +155,17 @@ class RequestPage(App):
         if self.loading:
             return LoadingState("Loading request...")
         elif self.error != "":
-            return Padding(
+            # Wrapped in a ListView so long pages scroll (Workpeg platform advice).
+            return ListView(Padding(
                 ErrorState(
                     self.error,
                     Button("Back to the board", variant="outline-gray",
                            icon="arrow-left", on_click=self.back),
                 ),
                 all=24,
-            )
+            ), height="calc(100dvh - 64px)")
         else:
-            return Padding(
+            return ListView(Padding(
                 ConstrainedBox(
                     Column(
                         Link("Board", href=biz_url("/"), icon="arrow-left"),
@@ -252,7 +253,7 @@ class RequestPage(App):
                     max_width=720,
                 ),
                 all=24,
-            )
+            ), height="calc(100dvh - 64px)")
 
     def assign_block(self):
         if self.status == "done" or self.status == "cancelled":

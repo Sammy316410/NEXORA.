@@ -1,6 +1,6 @@
 """Rooms: add them in a range, and keep each one's status current."""
 from workpeg.ui import (
-    App, State, Padding, Column, Row, Spacer, Text, Button, Table,
+    App, ListView, State, Padding, Column, Row, Spacer, Text, Button, Table,
     TableHeader, TableRow, TableCell, Modal, Form, Input, TextInput, TextArea,
     Select, Expanded,
     on_table_change, set_title, store, toast, workpeg,
@@ -145,7 +145,8 @@ class RoomsPage(App):
             await self.load()
 
     def build(self):
-        return Padding(
+        # Wrapped in a ListView so long pages scroll (Workpeg platform advice).
+        return ListView(Padding(
             Column(
                 PageHeader(
                     "Rooms", "Every room, and whether it can be sold now.",
@@ -158,7 +159,7 @@ class RoomsPage(App):
                 gap=24,
             ),
             all=24,
-        )
+        ), height="calc(100dvh - 64px)")
 
     def body(self):
         if self.loading:

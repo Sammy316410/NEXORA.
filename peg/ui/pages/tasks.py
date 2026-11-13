@@ -1,7 +1,7 @@
 """My tasks: the staff view on a phone. Requests assigned to the signed-in
 person (matched by their email on the Staff page), with one big button."""
 from workpeg.ui import (
-    App, State, Padding, Column, Row, Container, Expanded, Text, Button,
+    App, ListView, State, Padding, Column, Row, Container, Expanded, Text, Button,
     Select,
     biz_url, navigate, on_table_change, set_title, store, toast, user,
     workpeg,
@@ -132,7 +132,8 @@ class TasksPage(App):
         navigate(biz_url(f"/requests/{row_id}"))
 
     def build(self):
-        return Padding(
+        # Wrapped in a ListView so long pages scroll (Workpeg platform advice).
+        return ListView(Padding(
             Column(
                 PageHeader(
                     self.greeting,
@@ -146,7 +147,7 @@ class TasksPage(App):
                 gap=24,
             ),
             all=24,
-        )
+        ), height="calc(100dvh - 64px)")
 
     def body(self):
         if self.loading:
