@@ -8,7 +8,7 @@ from workpeg.ui import App, Column, Link, Route, Router, Text
 # Where "Open the NEXORA dashboard" points. Set it to the deployed NEXORA URL
 # before `workpeg ui build`; the compiled page cannot read environment
 # variables, so this constant is the configuration.
-NEXORA_DASHBOARD_URL = "http://localhost:3000"
+NEXORA_DASHBOARD_URL = "https://nexora-olive-kappa.vercel.app/dashboard"
 
 
 class Home(App):
@@ -36,4 +36,9 @@ class Home(App):
 
 
 class Main(Router):
-    routes = [Route("/", Home)]
+    # Workpeg opens a peg inside a business: /b/<business-id>/...
+    routes = [
+        Route("/", Home),
+        Route("/b/[business_id]", Home),
+        Route("/b/[business_id]/", Home),
+    ]
