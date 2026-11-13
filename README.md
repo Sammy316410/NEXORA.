@@ -4,12 +4,57 @@ NEXORA is a smart hospitality management platform that connects hotel operations
 
 Built for the **Workpeg Hospitality Hackathon** (Lagos, 13–14 Nov 2026). Product and design brief: [NEXORA — Product & Design Brief](https://claude.ai/artifact/NHhh9RHwainzQuHCpVaxG5).
 
+## Live links
+
+| What | Link |
+| --- | --- |
+| Landing page | https://nexora-olive-kappa.vercel.app |
+| Demo launcher: the Room 204 QR code, one-tap staff profiles and **Reset demo** | https://nexora-olive-kappa.vercel.app/demo |
+| Health check: database, AI mode and which Workpeg features are on | https://nexora-olive-kappa.vercel.app/api/health |
+
+A printable Room 204 card with the demo QR code is in [`docs/room-card.pdf`](docs/room-card.pdf).
+
 | Surface | Who | Where |
 | --- | --- | --- |
 | Guest portal (mobile web, hotel-branded) | Guests, from a room QR code or a link | `/g/<token>`, then `/guest` |
-| Staff app (mobile, one-handed) | Housekeeping, maintenance, room service | `/staff` |
+| Staff app (mobile, one-handed) | Housekeeping, maintenance, room service | the Expo app in `mobile/`, or `/staff` in a phone browser |
 | Manager dashboard (desktop) | Front desk and managers | `/dashboard` |
-| Demo launcher | Judges and the team | `/` (when `NEXORA_DEMO_MODE=true`) |
+| Demo launcher | Judges and the team | `/demo` (when `NEXORA_DEMO_MODE=true`) |
+
+## Demo script (3 devices)
+
+| Device | Who | Open |
+| --- | --- | --- |
+| Laptop (on the projector) | **Grace**, front desk lead | `/demo` → **Open as Grace** (the dashboard) |
+| A judge's phone | The guest in Room 204 | Scan the Room 204 QR code, enter the last name **Okafor** |
+| Staff phone | **Amaka**, housekeeping | The staff app (see [Run the staff app](#run-the-staff-app)), then under **Demo: open as** tap **Amaka**. No app installed? `/demo` → **Open as Amaka** in a phone browser. |
+
+1. **Guest:** tap **Something else?**, type "two extra towels" and tap **Find the right service**. NEXORA picks **Extra towels** (Housekeeping). Tap **Continue**, then **Send request**. It gets a code (NX-1042 after a reset).
+2. **Grace:** the request lands in **Pending** with a toast. Open it and assign the **Suggested** person, Amaka. The guest's tracker flips to **Assigned**.
+3. **Amaka:** the phone buzzes. Tap **Start task**: the guest sees "Amaka is on the way".
+4. **Amaka:** tap **Mark complete**: the guest sees **Done** and can give a thumbs up. The dashboard's history shows every step and how long each one took.
+
+Then, if there is time, show the AI, payments and reset moments in [The demo in four minutes](#the-demo-in-four-minutes).
+
+## How it fits together
+
+```
+Guest's phone (browser)       Front desk laptop (browser)      Staff phone (Expo app)
+/g/<token> → /guest           /dashboard                       mobile/  → /api/mobile/*
+          \                          |                          /
+           '---------- NEXORA web app: Next.js 16 on Vercel ---'
+                     server actions · realtime pings · AI sorting
+                                     |
+                    Supabase: Postgres, Auth, Realtime Broadcast
+                                     |
+         Workpeg: Sign in with Workpeg · Tables mirror · the peg in workpeg/
+```
+
+- **Guest portal and dashboard** (`src/`): one Next.js app on Vercel. Every read and write goes through the server; the browser never talks to the database directly.
+- **Staff app** (`mobile/`): an Expo (React Native) app that signs staff in and talks to the web app's `/api/mobile/*` routes. The same screens also work in a phone browser at `/staff`.
+- **Workpeg peg** (`workpeg/`): lets Workpeg AI read and act on live requests, rooms and staff through `/api/workpeg/actions`. See [`workpeg/README.md`](workpeg/README.md).
+
+The full details are in [Architecture](#architecture).
 
 ## Quick start (local)
 
@@ -25,13 +70,25 @@ npm run db:seed           # Amber Coast Hotel: 48 rooms, 11 staff, 41 stays, ~18
 npm run dev               # http://localhost:3000
 ```
 
-The seed prints David's guest link (Room 204, last name **Okafor**). Staff accounts use `@ambercoast.demo` emails with the password in `DEMO_STAFF_PASSWORD` (default `nexora-demo-2026`): `grace@` (front desk lead), `funmi@` (general manager), `amaka@` (housekeeping), `tunde@` (maintenance). In demo mode the launcher and login page also offer one-tap profiles.
+The seed prints David's guest link (Room 204, last name **Okafor**). Staff accounts use `@ambercoast.demo` emails with the password you set in `DEMO_STAFF_PASSWORD` (see `.env.example`): `grace@` (front desk lead), `funmi@` (general manager), `amaka@` (housekeeping), `tunde@` (maintenance). In demo mode the launcher and login page also offer one-tap profiles.
 
 Use one browser (or device) per staff role: a staff session lives in the browser. The guest session is separate, so a guest and one staff member can share a browser.
 
+### Run the staff app
+
+Needs the **Expo Go** app on the phone, and the phone and laptop on the same Wi-Fi.
+
+```bash
+cd mobile
+npm install
+npx expo start --lan      # scan the QR code it prints with Expo Go (Android) or the Camera app (iOS)
+```
+
+By default the app talks to `npm run dev` on the laptop (port 3000). To use the live demo instead, tap **Change** under the sign-in form and enter `https://nexora-olive-kappa.vercel.app`. You can also set `EXPO_PUBLIC_API_URL` in `mobile/.env`.
+
 ## The demo in four minutes
 
-1. Open `/` on the projector. Scan the Room 204 QR code with a phone and enter **Okafor**.
+1. Open `/demo` on the projector. Scan the Room 204 QR code with a phone and enter **Okafor**.
 2. Guest taps **Extra towels**, sets ×2, adds a note, sends. The request is NX-1042.
 3. Dashboard (Grace) gets a toast and the card in **Pending**. Open it and assign the **Suggested** person (Amaka). The guest's tracker flips to **Assigned**.
 4. Staff phone (Amaka) buzzes. **Start task**: the guest sees "Amaka is on the way". **Mark complete**: the guest sees **Done** and taps thumbs up.
