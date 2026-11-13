@@ -11,6 +11,14 @@ export const metadata: Metadata = {
   title: { default: "NEXORA", template: "%s · NEXORA" },
   description: "One connected experience. Every request accounted for.",
   applicationName: "NEXORA",
+  // The share image itself is src/app/opengraph-image.png (picked up by file name).
+  openGraph: {
+    type: "website",
+    siteName: "NEXORA",
+    title: "NEXORA",
+    description: "Every guest request, accounted for. Guests, staff and managers on one live system.",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {
