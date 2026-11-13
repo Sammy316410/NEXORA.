@@ -1,5 +1,6 @@
 {
   "namespace": "nexora",
+  "sdk": "0.163.0",
   "summary": "NEXORA hotel operations: live guest requests for housekeeping, maintenance, food and front desk, room status and staff on duty, with tools to log, assign and update requests.",
   "actions": [
     {
