@@ -6,7 +6,7 @@ staff) are made here, from a button the person presses.
 from workpeg.ui import (
     App, State, Padding, Column, Row, Spacer, Text, Button, Table,
     TableHeader, TableRow, TableCell, Modal, Form, Field, Input, TextInput,
-    Select,
+    Select, Wrap,
     biz_url, navigate, on_table_change, set_title, store, toast, workpeg,
     required,
 )
@@ -241,17 +241,26 @@ class BoardPage(App):
     def set_priority(self, value):
         self.priority = value
 
+    def quick(self, what, department, priority):
+        """A common request in one tap: fills the text and the team."""
+        self.what = what
+        self.department = department
+        self.priority = priority
+
     async def save(self, values):
         if self.saving or not self.ready:
             return
         if self.room.strip() == "":
             toast("Choose the room.", kind="warning")
             return
+        if self.what.strip() == "":
+            toast("Say what the guest needs.", kind="warning")
+            return
         self.saving = True
         top = self.rows[0]["position"] if len(self.rows) > 0 else 0
         try:
             await workpeg.add_row(self.requests_table, {
-                "data": {"title": values["what"].strip(),
+                "data": {"title": self.what.strip(),
                          "room": self.room.strip(),
                          "department": self.department,
                          "priority": self.priority,
@@ -409,8 +418,37 @@ class BoardPage(App):
     def add_form(self):
         return Form(
             self.room_input(),
-            Field("what", TextInput(value=self.what, on_change=self.set_what),
-                  label="What does the guest need?", validators=[required]),
+            Text("Common requests", variant="caption"),
+            Wrap(
+                Button("Extra towels", variant="outline-gray", size="sm",
+                       on_click=lambda: self.quick(
+                           "Extra towels", "housekeeping", "normal")),
+                Button("Clean the room", variant="outline-gray", size="sm",
+                       on_click=lambda: self.quick(
+                           "Clean the room", "housekeeping", "normal")),
+                Button("AC not cooling", variant="outline-gray", size="sm",
+                       on_click=lambda: self.quick(
+                           "AC not cooling", "maintenance", "high")),
+                Button("Food to the room", variant="outline-gray", size="sm",
+                       on_click=lambda: self.quick(
+                           "Food to the room", "food", "normal")),
+                Button("Book a car", variant="outline-gray", size="sm",
+                       on_click=lambda: self.quick(
+                           "Book a car", "front_desk", "normal")),
+                Button("Late checkout", variant="outline-gray", size="sm",
+                       on_click=lambda: self.quick(
+                           "Late checkout", "front_desk", "normal")),
+                Button("Spa booking", variant="outline-gray", size="sm",
+                       on_click=lambda: self.quick(
+                           "Spa booking", "front_desk", "normal")),
+                Button("Wake-up call", variant="outline-gray", size="sm",
+                       on_click=lambda: self.quick(
+                           "Wake-up call", "front_desk", "normal")),
+                spacing=8,
+            ),
+            Input(TextInput(value=self.what, on_change=self.set_what),
+                  label="What does the guest need?",
+                  hint="Tap a common request above, or type it."),
             Select(
                 options=[
                     {"value": "housekeeping", "label": "Housekeeping"},
