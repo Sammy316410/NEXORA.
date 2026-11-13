@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
-import { db } from "@/lib/db";
+import { db, exactIlike, sameText } from "@/lib/db";
 import { homeFor } from "@/lib/auth";
 import { logIntegration, workpegConfig } from "@/lib/workpeg";
 import { oidc, workpegOidc } from "@/lib/workpeg-oidc";
@@ -51,8 +51,9 @@ export async function GET(request: NextRequest) {
 
   let { data: staff } = await db().from("staff").select("*").eq("workpeg_subject", subject).maybeSingle();
   if (!staff && email) {
-    const byEmail = await db().from("staff").select("*").ilike("email", email).maybeSingle();
-    staff = byEmail.data;
+    // Exact match ignoring case. The re-check also covers `*`, which PostgREST reads as a wildcard.
+    const byEmail = await db().from("staff").select("*").ilike("email", exactIlike(email)).maybeSingle();
+    staff = byEmail.data && sameText(byEmail.data.email, email) ? byEmail.data : null;
     if (staff) await db().from("staff").update({ workpeg_subject: subject }).eq("id", staff.id);
   }
   if (!staff) {

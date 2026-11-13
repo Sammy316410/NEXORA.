@@ -11,7 +11,17 @@ export function AccessForm({ action }: { action: (prev: ActionResult | null, for
     <form action={formAction} className="space-y-4">
       <div>
         <Label htmlFor="lastName">Last name on your booking</Label>
-        <Input id="lastName" name="lastName" autoComplete="family-name" autoCapitalize="words" required placeholder="e.g. Okafor" />
+        {/* Autocorrect off: phone keyboards "fix" an unfamiliar lowercase surname (okafor → okay for). */}
+        <Input
+          id="lastName"
+          name="lastName"
+          autoComplete="family-name"
+          autoCapitalize="words"
+          autoCorrect="off"
+          spellCheck={false}
+          required
+          placeholder="e.g. Okafor"
+        />
       </div>
       {state && !state.ok ? <FormError>{state.error}</FormError> : null}
       <SubmitButton variant="hotel" size="xl" className="w-full" pendingText="Checking…">

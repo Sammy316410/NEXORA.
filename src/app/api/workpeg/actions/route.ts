@@ -50,6 +50,11 @@ function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
 }
 
+/** A fixed choice (status, priority, department): "In progress", "in-progress" and "IN_PROGRESS" all mean in_progress. */
+function option(v: unknown): string {
+  return str(v).toLowerCase().replace(/[\s-]+/g, "_");
+}
+
 function summarize(r: RequestView, tz: string) {
   const now = Date.now();
   const due = dueState(r, now);
@@ -109,8 +114,8 @@ async function run(action: string, params: Record<string, unknown>, hotel: Hotel
 
   switch (action) {
     case "list_open_requests": {
-      const dept = str(params.department);
-      const status = str(params.status);
+      const dept = option(params.department);
+      const status = option(params.status);
       let rows = await listRequests({ hotelId: hotel.id, statuses: OPEN_STATUSES, limit: 200 });
       if (dept) rows = rows.filter((r) => r.department_id === dept);
       if (status) rows = rows.filter((r) => r.status === status);
@@ -126,7 +131,7 @@ async function run(action: string, params: Record<string, unknown>, hotel: Hotel
       };
     }
     case "list_rooms": {
-      const status = str(params.status) as RoomStatus | "";
+      const status = option(params.status) as RoomStatus | "";
       const rooms = (await listRooms(hotel)).filter((r) => !status || r.status === status);
       return {
         count: rooms.length,
@@ -143,7 +148,7 @@ async function run(action: string, params: Record<string, unknown>, hotel: Hotel
       };
     }
     case "list_staff": {
-      const dept = str(params.department);
+      const dept = option(params.department);
       const open = await listRequests({ hotelId: hotel.id, statuses: OPEN_STATUSES, limit: 300 });
       return {
         staff: staff
@@ -182,7 +187,7 @@ async function run(action: string, params: Record<string, unknown>, hotel: Hotel
     case "update_request_status": {
       const { actor: a } = needWriter();
       const req = await requestFor(params.code);
-      const status = str(params.status);
+      const status = option(params.status);
       const note = str(params.note) || null;
       const updated =
         status === "in_progress"
@@ -205,7 +210,7 @@ async function run(action: string, params: Record<string, unknown>, hotel: Hotel
       const sorted = await classifyRequest(description, services, hotel.name);
       const first = sorted.items[0];
       const { data: stay } = await db().from("reservations").select("id, guest_id").eq("room_id", room.id).eq("status", "checked_in").maybeSingle();
-      const priority = str(params.priority);
+      const priority = option(params.priority);
       const req = await createRequest({
         hotelId: hotel.id,
         roomId: room.id,
@@ -229,7 +234,7 @@ async function run(action: string, params: Record<string, unknown>, hotel: Hotel
       if (w.role === "staff") throw new BridgeError("Only the front desk or a manager can change room status.", 403);
       const room = await findRoomByNumber(hotel.id, str(params.room));
       if (!room) throw new BridgeError(`There's no room ${str(params.room)}.`, 404);
-      const status = str(params.status) as RoomStatus;
+      const status = option(params.status) as RoomStatus;
       if (!["available", "occupied", "cleaning", "maintenance"].includes(status)) throw new BridgeError("Unknown room status.");
       await setRoomStatus(room.id, status, a, str(params.reason) || null);
       return { ok: true, message: `Room ${room.number} is now ${ROOM_STATUS_LABEL[status]}.` };
