@@ -4,7 +4,7 @@ It also sets NEXORA up in a business: the three tables (requests, rooms,
 staff) are made here, from a button the person presses.
 """
 from workpeg.ui import (
-    App, State, Padding, Column, Row, Spacer, Text, Button, Table,
+    App, ListView, State, Padding, Column, Row, Spacer, Text, Button, Table,
     TableHeader, TableRow, TableCell, Modal, Form, Field, Input, TextInput,
     Select, Wrap,
     biz_url, navigate, on_table_change, set_title, store, toast, workpeg,
@@ -279,7 +279,8 @@ class BoardPage(App):
         navigate(biz_url(f"/requests/{row_id}"))
 
     def build(self):
-        return Padding(
+        # Wrapped in a ListView so long pages scroll (Workpeg platform advice).
+        return ListView(Padding(
             Column(
                 PageHeader(
                     "Guest requests",
@@ -308,7 +309,7 @@ class BoardPage(App):
                 gap=24,
             ),
             all=24,
-        )
+        ), height="calc(100dvh - 64px)")
 
     def view_button(self, key, label):
         if self.view == key:

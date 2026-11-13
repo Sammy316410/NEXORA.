@@ -1,6 +1,6 @@
 """Staff: who works here, their team, and who is on duty right now."""
 from workpeg.ui import (
-    App, State, Padding, Column, Row, Spacer, Text, Button, Table,
+    App, ListView, State, Padding, Column, Row, Spacer, Text, Button, Table,
     TableHeader, TableRow, TableCell, Modal, Form, Field, TextInput, Select,
     Switch, on_table_change, set_title, store, toast, workpeg, required,
     email,
@@ -104,7 +104,8 @@ class StaffPage(App):
             await self.load()
 
     def build(self):
-        return Padding(
+        # Wrapped in a ListView so long pages scroll (Workpeg platform advice).
+        return ListView(Padding(
             Column(
                 PageHeader(
                     "Staff", "Your team, and who can take a task right now.",
@@ -117,7 +118,7 @@ class StaffPage(App):
                 gap=24,
             ),
             all=24,
-        )
+        ), height="calc(100dvh - 64px)")
 
     def body(self):
         if self.loading:
