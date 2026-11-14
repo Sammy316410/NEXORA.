@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { db } from "./db";
 import { ping, topics, type PingMessage } from "./realtime";
 import { syncRequestToWorkpeg } from "./workpeg";
+import { pushGuestRequestToPeg } from "./workpeg-permissions";
 import { syncReservationBalance } from "./payments/folio";
 import { firstName, fmtAgo, fmtMinor, fmtTime, DEFAULT_TZ } from "./format";
 import { DEPARTMENT_LABEL, PRIORITY_LABEL } from "./labels";
@@ -156,6 +157,9 @@ function announce(req: RequestView, kind: string, guestMessage: string | null) {
   later(async () => {
     await ping(messages);
     await syncRequestToWorkpeg(req.id);
+    // A guest's new request also lands on the NEXORA peg's Board in Workpeg,
+    // once a hotel has allowed the peg's inbound permission.
+    if (kind === "created" && req.source === "guest_portal") await pushGuestRequestToPeg(req);
   });
 }
 
