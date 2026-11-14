@@ -21,6 +21,10 @@ class AppShell(Shell):
             ),
             fixed=NavFixed(NavItem("Board", biz_url("/"),
                                    icon="layout-dashboard")),
-            top_nav=Text(store.page_title, weight="semibold"),
+            # The business (the hotel) the person is working in, then the page.
+            # store.business is written by the Scaffold once businesses load.
+            top_nav=Text(f"{store.business} | {store.page_title}"
+                         if store.business else store.page_title,
+                         weight="semibold"),
             main=Outlet(),
         )

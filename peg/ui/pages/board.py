@@ -7,7 +7,8 @@ from workpeg.ui import (
     App, ListView, State, Padding, Column, Row, Spacer, Text, Button, Table,
     TableHeader, TableRow, TableCell, Modal, Form, Field, Input, TextInput,
     Select, Wrap,
-    biz_url, navigate, on_table_change, set_title, store, toast, workpeg,
+    biz_url, navigate, on_table_change, set_title, store, toast, user,
+    workpeg,
     required,
 )
 
@@ -17,6 +18,9 @@ from components import (
 )
 
 PAGE = 200
+# The "you have a task" email is sent from this address: it must be on a
+# domain the business has verified for Workpeg mail.
+SENDER = "nexora@nexpeg.xyz"
 
 
 class BoardPage(App):
@@ -41,6 +45,7 @@ class BoardPage(App):
     department = State("housekeeping")
     priority = State("normal")
     room_options = State([])
+    assigning = State(False)
 
     async def on_mount(self):
         on_table_change(self.changed)      # register BEFORE the first await
@@ -259,21 +264,209 @@ class BoardPage(App):
         self.saving = True
         top = self.rows[0]["position"] if len(self.rows) > 0 else 0
         try:
+            data = {"title": self.what.strip(),
+                    "room": self.room.strip(),
+                    "department": self.department,
+                    "priority": self.priority,
+                    "status": "new",
+                    "source": "desk"}
+            # Smart assignment: the on-duty person in this team with the
+            # fewest open tasks gets it straight away.
+            people = await self.load_people()
+            person = self.choose(people, self.department, self.open_loads())
+            if person is not None:
+                data["status"] = "assigned"
+                data["assignee"] = person["data"]["name"]
+                data["assignee_email"] = person["data"].get("email", "")
             await workpeg.add_row(self.requests_table, {
-                "data": {"title": self.what.strip(),
-                         "room": self.room.strip(),
-                         "department": self.department,
-                         "priority": self.priority,
-                         "status": "new",
-                         "source": "desk"},
+                "data": data,
                 "position": top + 1000,
             })
             self.adding = False
-            toast("Request logged", kind="success")
+            if person is None:
+                toast(f"Request logged. No one in "
+                      f"{self.team_name(self.department)} is on duty, so it "
+                      "is waiting.", kind="warning")
+            else:
+                problem = await self.notify(person, data)
+                if problem == "":
+                    toast(f"Logged and assigned to {person['data']['name']}. "
+                          "They have been emailed.", kind="success")
+                else:
+                    toast(f"Logged and assigned to {person['data']['name']}, "
+                          f"but the email was not sent: {problem}",
+                          kind="warning")
             await self.load()
         except Exception as e:
             toast(e.message, kind="danger")
         self.saving = False
+
+    # ---- Smart assignment and the "you have a task" email -------------
+
+    def team_name(self, dept):
+        if dept == "maintenance":
+            return "Maintenance"
+        elif dept == "food":
+            return "Food & drink"
+        elif dept == "front_desk":
+            return "Front desk"
+        elif dept == "housekeeping":
+            return "Housekeeping"
+        else:
+            return "No team"
+
+    def is_new(self, row):
+        status = row["data"].get("status", "")
+        return status == "new" or status == ""
+
+    def open_loads(self):
+        """One name per open task (assigned or in progress)."""
+        return [r["data"].get("assignee", "") for r in self.rows
+                if r["data"].get("status", "") == "assigned"
+                or r["data"].get("status", "") == "in_progress"]
+
+    async def load_people(self):
+        found = await workpeg.get_tables("staff")
+        if len(found) == 0:
+            return []
+        return await workpeg.get_rows(found[0]["uuid"], limit=200)
+
+    def choose(self, people, department, loads):
+        """The on-duty person in this team with the fewest open tasks."""
+        team = [p for p in people
+                if p["data"].get("on_duty", False)
+                and p["data"].get("department", "") == department]
+        best = None
+        best_load = 0
+        for p in team:
+            name = p["data"].get("name", "")
+            load = len([n for n in loads if n == name])
+            if best is None or load < best_load:
+                best = p
+                best_load = load
+        return best
+
+    async def mail_table(self):
+        # Saving a row here sends it: the table's pre-save hook is Workpeg's
+        # built-in send_email (notify_email is deprecated).
+        found = await workpeg.get_tables("nexora_mail")
+        if len(found) > 0:
+            return found[0]["uuid"]
+        made = await workpeg.create_table({
+            "name": "NEXORA notifications",
+            "alias": "nexora_mail",
+            "namespace": "nexora_mail",
+            "permission": "760",
+            "pre_save_hook": "default.send_email",
+            "columns": [
+                {"id": "to", "name": "To", "type": "many_to_many",
+                 "metadata": {"datatype": "text"}, "position": 1000},
+                {"id": "from", "name": "From", "type": "text",
+                 "position": 2000},
+                {"id": "subject", "name": "Subject", "type": "text",
+                 "position": 3000},
+                {"id": "plain_text", "name": "Body", "type": "text",
+                 "position": 4000},
+                {"id": "message_id", "name": "Message id", "type": "text",
+                 "position": 5000},
+            ],
+        })
+        return made["uuid"]
+
+    async def notify(self, person, data):
+        """Email the person their new task. Returns "" or what went wrong."""
+        email = person["data"].get("email", "").strip()
+        name = person["data"].get("name", "")
+        if "@" not in email:
+            return f"{name} has no email on the Staff page"
+        room = data.get("room", "")
+        title = data.get("title", "")
+        team = self.team_name(data.get("department", ""))
+        priority = data.get("priority", "normal")
+        body = (f"Hi {name},\n\nYou have a new task in NEXORA.\n\n"
+                f"Room: {room}\nRequest: {title}\nTeam: {team}\n"
+                f"Priority: {priority}\n\n"
+                "Open My tasks in NEXORA to start it.\n")
+        try:
+            table = await self.mail_table()
+            await workpeg.add_row(table, {"data": {
+                "to": [email],
+                "from": SENDER,
+                "subject": f"New task: {room} - {title}",
+                "plain_text": body,
+            }})
+            return ""
+        except Exception as e:
+            # A dev install's tables cannot carry Workpeg's built-in
+            # send_email hook (the platform answers 400). Released, they can.
+            if "400" in e.message:
+                return ("automatic emails start once NEXORA is released. "
+                        "For now, ask Workpeg AI to email them")
+            return e.message
+
+    async def auto_assign(self):
+        """Assign every new request (from the desk, a guest or Workpeg AI)."""
+        if self.assigning:
+            return
+        self.assigning = True
+        try:
+            people = await self.load_people()
+            # Only the desk (team Front desk) or someone not on the Staff
+            # page (owner, manager) assigns; same rule as the request page.
+            me = user.email.strip().lower()
+            mine = next((p for p in people
+                         if me != ""
+                         and p["data"].get("email", "").strip().lower() == me),
+                        None)
+            if mine is not None and mine["data"].get("department", "") != "front_desk":
+                toast("Only the front desk or a manager can auto-assign.",
+                      kind="warning")
+                self.assigning = False
+                return
+            loads = self.open_loads()
+            fresh = [r for r in self.rows if self.is_new(r)][::-1]
+            assigned = 0
+            waiting = 0
+            mail_problem = ""
+            for r in fresh:
+                person = self.choose(people, r["data"].get("department", ""),
+                                     loads)
+                if person is None:
+                    waiting += 1
+                else:
+                    data = {}
+                    for key in r["data"]:
+                        data[key] = r["data"][key]
+                    data["status"] = "assigned"
+                    data["assignee"] = person["data"]["name"]
+                    data["assignee_email"] = person["data"].get("email", "")
+                    await workpeg.update_row(self.requests_table, r["id"],
+                                             {"data": data})
+                    loads.append(person["data"]["name"])
+                    assigned += 1
+                    problem = await self.notify(person, data)
+                    if problem != "":
+                        mail_problem = problem
+            if mail_problem != "":
+                toast(f"Assigned {assigned}, but an email was not sent: "
+                      f"{mail_problem}", kind="warning")
+            elif waiting > 0:
+                toast(f"Assigned {assigned}. {waiting} waiting: no one on "
+                      "duty in their team.", kind="warning")
+            else:
+                toast(f"Assigned {assigned} and emailed each person.",
+                      kind="success")
+        except Exception as e:
+            toast(e.message, kind="danger")
+        self.assigning = False
+        await self.load()
+
+    def auto_button(self):
+        if self.assigning:
+            return Button("Assigning...", disabled=True)
+        else:
+            return Button("Auto-assign new", icon="sparkles",
+                          variant="outline-gray", on_click=self.auto_assign)
 
     def open_request(self, row_id):
         navigate(biz_url(f"/requests/{row_id}"))
@@ -285,9 +478,13 @@ class BoardPage(App):
                 PageHeader(
                     "Guest requests",
                     "Everything guests have asked for, newest first.",
-                    Button("Log a request", icon="plus",
-                           on_click=self.open_add,
-                           visible=self.ready and len(self.rows) > 0),
+                    Row(
+                        self.auto_button(),
+                        Button("Log a request", icon="plus",
+                               on_click=self.open_add),
+                        gap=8,
+                        visible=self.ready and len(self.rows) > 0,
+                    ),
                 ),
                 Row(
                     StatTile(self.new_count, "New, not assigned"),
