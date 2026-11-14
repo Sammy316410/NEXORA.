@@ -81,10 +81,10 @@ async function resolveActor(hotel: Hotel, staff: Staff[], actor: { email?: unkno
     const match = staff.find((s) => s.email.toLowerCase() === email);
     if (match) return match;
   }
-  // Demo: Workpeg accounts won't match the seeded @ambercoast.demo emails, so act
-  // for a named stand-in (NEXORA_BRIDGE_DEFAULT_ACTOR, default the front desk lead).
+  // Demo: Workpeg accounts won't match the seeded @mockmail.com emails, so act
+  // for a stand-in (NEXORA_BRIDGE_DEFAULT_ACTOR, default the receptionist).
   if (process.env.NEXORA_DEMO_MODE === "true") {
-    const fallback = (process.env.NEXORA_BRIDGE_DEFAULT_ACTOR ?? "grace@ambercoast.demo").toLowerCase();
+    const fallback = (process.env.NEXORA_BRIDGE_DEFAULT_ACTOR ?? "receptionist@mockmail.com").toLowerCase();
     return staff.find((s) => s.email.toLowerCase() === fallback) ?? null;
   }
   return null;

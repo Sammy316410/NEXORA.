@@ -16,15 +16,14 @@ const ERRORS: Record<string, string> = {
   workpeg_unreachable: "We couldn't reach Workpeg. Try again, or use email.",
   workpeg_failed: "Workpeg sign-in didn't complete. Please try again.",
   workpeg_state: "That sign-in link expired. Please start again.",
-  workpeg_not_linked: "Your Workpeg account isn't linked to Amber Coast Hotel yet. Ask your manager.",
+  workpeg_not_linked: "Your Workpeg account isn't linked to this hotel yet. Ask your manager.",
   demo_user: "That demo profile doesn't exist. Run the seed first.",
 };
 
 const DEMO_PROFILES = [
-  { as: "grace", name: "Grace", role: "Front desk lead · dashboard" },
-  { as: "funmi", name: "Funmi", role: "General manager · dashboard" },
-  { as: "amaka", name: "Amaka", role: "Housekeeping · staff app" },
-  { as: "tunde", name: "Tunde", role: "Maintenance · staff app" },
+  { as: "receptionist", name: "Receptionist", role: "Front desk · dashboard" },
+  { as: "manager", name: "Duty manager", role: "Manager · dashboard" },
+  { as: "porter", name: "Porter", role: "Lounge · staff app" },
 ];
 
 // S1 + M1: one sign-in page for staff and managers.
@@ -65,7 +64,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <div className="mb-8 lg:hidden">
             <NexoraLogo />
           </div>
-          <h1 className="font-display text-2xl font-extrabold tracking-tight">Sign in to Amber Coast Hotel</h1>
+          <h1 className="font-display text-2xl font-extrabold tracking-tight">Sign in to Villa Monument (demo)</h1>
           <p className="mt-1 text-sm text-muted">Use your hotel&apos;s Workpeg account.</p>
 
           {error && ERRORS[error] ? (

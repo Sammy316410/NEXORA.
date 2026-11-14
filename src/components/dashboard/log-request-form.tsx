@@ -38,7 +38,7 @@ export function LogRequestForm({
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <Label htmlFor="room">Room</Label>
-          <Input id="room" name="room" required inputMode="numeric" list="rooms" value={room} onChange={(e) => setRoom(e.target.value)} placeholder="e.g. 204" />
+          <Input id="room" name="room" required list="rooms" value={room} onChange={(e) => setRoom(e.target.value)} placeholder="e.g. Westminster" />
           <datalist id="rooms">
             {occupied.map((o) => (
               <option key={o.number} value={o.number}>

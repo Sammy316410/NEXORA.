@@ -20,7 +20,7 @@ export function AccessForm({ action }: { action: (prev: ActionResult | null, for
           autoCorrect="off"
           spellCheck={false}
           required
-          placeholder="e.g. Okafor"
+          placeholder="As on the booking"
         />
       </div>
       {state && !state.ok ? <FormError>{state.error}</FormError> : null}

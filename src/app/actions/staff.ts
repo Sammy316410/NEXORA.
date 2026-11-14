@@ -23,7 +23,7 @@ export async function signIn(_prev: ActionResult | null, formData: FormData): Pr
   const { data: staff } = await db().from("staff").select("id, role").eq("user_id", data.user.id).maybeSingle();
   if (!staff) {
     await supabase.auth.signOut();
-    return { ok: false, error: "Your account isn't linked to Amber Coast Hotel yet. Ask your manager." };
+    return { ok: false, error: "Your account isn't linked to this hotel yet. Ask your manager." };
   }
   await db().from("staff").update({ last_seen_at: new Date().toISOString() }).eq("id", staff.id);
   redirect(next.startsWith("/") && !next.startsWith("//") ? next : homeFor(staff));

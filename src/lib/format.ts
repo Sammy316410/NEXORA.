@@ -128,3 +128,11 @@ export function greeting(tz = DEFAULT_TZ, now = Date.now()): string {
   if (hour < 17) return "Good afternoon";
   return "Good evening";
 }
+
+/** "Floor 2"; 0 means guest rooms with no floor recorded, below 0 means amenities (lounge, gym). */
+export function floorLabel(floor: number | null | undefined): string {
+  if (floor === null || floor === undefined) return "";
+  if (floor === 0) return "Guest rooms";
+  if (floor < 0) return "Amenities";
+  return `Floor ${floor}`;
+}
