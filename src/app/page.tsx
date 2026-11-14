@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ScrollTone } from "@/components/client/scroll-tone";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -48,6 +49,7 @@ const TICKER = [
 export default function LandingPage() {
   return (
     <div className="bg-canvas text-ink">
+      <ScrollTone />
       <Nav />
       <Hero />
       <Ticker />
@@ -90,7 +92,7 @@ function Nav() {
 
 function Hero() {
   return (
-    <section className="relative isolate overflow-hidden bg-ink pt-36 pb-24 text-white sm:pt-44">
+    <section data-scroll-tone="dark" className="relative isolate overflow-hidden bg-ink pt-36 pb-24 text-white sm:pt-44">
       {/* backdrop: grid, glow, drifting nodes */}
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgb(255_255_255/0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgb(255_255_255/0.05)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,black,transparent)] bg-[size:56px_56px]" />
       <div aria-hidden="true" className="absolute top-[-20%] left-1/2 -z-10 h-[640px] w-[1100px] -translate-x-1/2 animate-glow rounded-full bg-[radial-gradient(closest-side,rgb(0_100_255/0.45),transparent)] blur-2xl" />
@@ -376,7 +378,7 @@ function Features() {
 
 function WorkpegSection() {
   return (
-    <section id="workpeg" className="relative isolate scroll-mt-24 overflow-hidden bg-ink py-28 text-white">
+    <section id="workpeg" data-scroll-tone="dark" className="relative isolate scroll-mt-24 overflow-hidden bg-ink py-28 text-white">
       <div aria-hidden="true" className="absolute bottom-[-30%] left-[-10%] -z-10 size-[600px] rounded-full bg-[radial-gradient(closest-side,rgb(0_100_255/0.3),transparent)] blur-2xl" />
       <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 lg:grid-cols-2">
         <div>

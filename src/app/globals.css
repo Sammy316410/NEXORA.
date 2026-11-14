@@ -165,6 +165,20 @@
 
 html {
   color-scheme: light;
+  /* A thin page scrollbar whose track matches the page. Over a dark section
+     (data-scroll-tone="dark", switched by ScrollTone) it turns dark too. */
+  scrollbar-width: thin;
+  scrollbar-color: rgb(13 13 13 / 0.28) var(--color-canvas);
+}
+
+html[data-scroll-tone="dark"] {
+  scrollbar-color: rgb(255 255 255 / 0.3) var(--color-ink);
+}
+
+/* Inner scrolling panels: thin, with a see-through track. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(13 13 13 / 0.22) transparent;
 }
 
 body {
