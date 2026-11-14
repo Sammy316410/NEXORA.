@@ -1,9 +1,32 @@
 // Hosted Workpeg docs MCP: MCP Streamable HTTP, stateless, JSON responses.
 // POST JSON-RPC to /mcp; no session or auth (the docs are public).
 import { buildPages, handleMessage } from "../core.mjs";
-import entries from "../generated/docs.mjs";
+import { PAGE_NAMES } from "../pages.mjs";
 
-const pages = buildPages(entries);
+const RAW = "https://gitlab.com/workpeg/workpeg-sdk/-/raw/main/docs/";
+
+// Pages are fetched once per instance from the public SDK repo, so the
+// hosted copy is always current. The stdio server reads the repo's copy.
+let pagesPromise;
+function loadPages() {
+  pagesPromise ??= Promise.all(
+    PAGE_NAMES.map(async (name) => {
+      const res = await fetch(RAW + name + ".md");
+      const text = await res.text();
+      return res.ok && !/^\s*<(!doctype|html)/i.test(text) ? { name, text } : null;
+    }),
+  )
+    .then((entries) => {
+      const ok = entries.filter(Boolean);
+      if (!ok.length) throw new Error("Could not load the Workpeg docs");
+      return buildPages(ok);
+    })
+    .catch((err) => {
+      pagesPromise = undefined; // retry on the next request
+      throw err;
+    });
+  return pagesPromise;
+}
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -25,6 +48,12 @@ async function readBody(req) {
 }
 
 export default async function handler(req, res) {
+  let pages;
+  try {
+    pages = await loadPages();
+  } catch (err) {
+    return json(res, 503, { error: String(err.message || err) });
+  }
   if (req.method === "OPTIONS") {
     res.writeHead(204, CORS);
     return res.end();
