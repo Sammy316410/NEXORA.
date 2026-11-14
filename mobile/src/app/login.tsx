@@ -10,8 +10,8 @@ import { Button } from "@/components/ui";
 
 // The staff-app demo profiles from the web sign-in page (src/app/login/page.tsx).
 const DEMO_PROFILES = [
-  { as: "amaka", name: "Amaka", role: "Housekeeping · staff app" },
-  { as: "tunde", name: "Tunde", role: "Maintenance · staff app" },
+  { as: "porter", name: "Porter", role: "Lounge · staff app" },
+  { as: "receptionist", name: "Receptionist", role: "Front desk · staff app" },
 ];
 
 // S1: one sign-in page, same as the web.

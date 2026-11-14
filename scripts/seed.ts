@@ -3,6 +3,7 @@
 // Reads .env.local (via `node --env-file`). Safe to run repeatedly.
 import { createClient } from "@supabase/supabase-js";
 import { seedDemo } from "../src/lib/seed";
+import { TEAM_GUEST } from "../src/lib/seed/catalog";
 
 async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -16,9 +17,9 @@ async function main() {
 
   const result = await seedDemo(db, { password, log: (m) => console.log(`  ${m}`) });
   const appUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
-  console.log("\nSeeded Amber Coast Hotel.");
-  console.log(`  Staff sign-in:  grace@ambercoast.demo (front desk), amaka@ambercoast.demo (housekeeping), password ${password}`);
-  if (result.davidToken) console.log(`  Guest link (David, Room 204, last name Okafor): ${appUrl}/g/${result.davidToken}`);
+  console.log("\nSeeded Villa Monument (demo).");
+  console.log(`  Staff sign-in:  receptionist@mockmail.com (front desk), porter@mockmail.com (lounge), manager@mockmail.com, password ${password}`);
+  if (result.guestToken) console.log(`  Guest link (${TEAM_GUEST.room}, last name ${TEAM_GUEST.last}): ${appUrl}/g/${result.guestToken}`);
 }
 
 main().catch((err) => {

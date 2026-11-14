@@ -51,5 +51,10 @@ change and who made it.
   only (front desk receptionist and porter), because they did not give
   their names. Their emails are placeholders at `@mockmail.com`. No guest
   data is stored.
-- **Web app**: the seed data is fictional (the "Amber Coast Hotel").
+- **Web app**: uses the same Villa Monument rooms and staff roles, shown as
+  "Villa Monument (demo)" with a note that we are not affiliated with the
+  hotel. The one guest is a team member's own stay. The only requests are the
+  two we saw: the room door and food in the lounge. Room rates and the
+  room-service menu and prices are samples. The old fictional "Amber Coast
+  Hotel" data has been removed.
 - **Payments**: sandbox only. No real card or bank details are used.

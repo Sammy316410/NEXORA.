@@ -4,7 +4,7 @@ import { LogIn, LogOut, X } from "lucide-react";
 import { requireManager } from "@/lib/auth";
 import { getHotel, listRooms } from "@/lib/hotel";
 import { listRequests } from "@/lib/requests";
-import { fmtDate, fmtMoney, fmtTime, isoMinutesAgo } from "@/lib/format";
+import { floorLabel, fmtDate, fmtMoney, fmtTime, isoMinutesAgo } from "@/lib/format";
 import { ROOM_STATUS_CODE, ROOM_STATUS_LABEL } from "@/lib/labels";
 import { roomStatusAction } from "@/app/actions/manager";
 import { cn } from "@/lib/cn";
@@ -35,7 +35,7 @@ export default async function RoomsPage({ searchParams }: { searchParams: Promis
   const hotel = await getHotel();
   const rooms = await listRooms(hotel);
   const shown = rooms.filter((r) => !status || r.status === status);
-  const floors = [...new Set(rooms.map((r) => r.floor))].sort();
+  const floors = [...new Set(rooms.map((r) => r.floor))].sort((a, b) => (a < 0 ? 1 : 0) - (b < 0 ? 1 : 0) || a - b);
   const counts = (s: RoomStatus) => rooms.filter((r) => r.status === s).length;
   const selected = openRoom ? rooms.find((r) => r.id === openRoom) : undefined;
   const history = selected
@@ -52,7 +52,7 @@ export default async function RoomsPage({ searchParams }: { searchParams: Promis
 
   return (
     <div>
-      <PageTitle title="Rooms" subtitle="Status by floor. Open requests show on each tile." />
+      <PageTitle title="Rooms" subtitle="Status of every room and space. Open requests show on each tile." />
       <div className="mb-5 flex flex-wrap gap-2 text-sm">
         <Link href={link({ status: undefined })} className={cn("rounded-full border px-3 py-1.5 font-medium", !status ? "border-ink bg-ink text-white" : "border-line bg-surface")}>
           All {rooms.length}
@@ -76,7 +76,7 @@ export default async function RoomsPage({ searchParams }: { searchParams: Promis
           if (!list.length) return null;
           return (
             <section key={floor}>
-              <h2 className="mb-2 text-sm font-semibold text-muted">Floor {floor}</h2>
+              <h2 className="mb-2 text-sm font-semibold text-muted">{floorLabel(floor)}</h2>
               <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-12">
                 {list.map((r) => (
                   <Link
@@ -124,7 +124,7 @@ export default async function RoomsPage({ searchParams }: { searchParams: Promis
               <div>
                 <p className="font-display text-4xl font-extrabold tabular-nums">{selected.number}</p>
                 <p className="text-sm text-muted">
-                  Floor {selected.floor} · {selected.room_type} · {fmtMoney(selected.rate, hotel.currency)}/night
+                  {floorLabel(selected.floor)} · {selected.room_type}{selected.rate > 0 ? ` · ${fmtMoney(selected.rate, hotel.currency)}/night` : ""}
                 </p>
               </div>
               <Link href={link({ room: undefined })} scroll={false} className="rounded-full p-2 text-muted hover:bg-black/5" aria-label="Close">

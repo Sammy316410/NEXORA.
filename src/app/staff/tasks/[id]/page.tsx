@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, MapPin } from "lucide-react";
 import { requireStaff, isManager } from "@/lib/auth";
 import { getEvents, getRequest, listRequests } from "@/lib/requests";
-import { fmtTime, isoMinutesAgo } from "@/lib/format";
+import { floorLabel, fmtTime, isoMinutesAgo } from "@/lib/format";
 import { departmentName } from "@/lib/labels";
 import { ServiceIcon } from "@/components/icons";
 import { PriorityBadge, StatusChip } from "@/components/status";
@@ -40,7 +40,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
         <p className="text-[11px] font-semibold tracking-wide text-muted uppercase">Room</p>
         <p className="font-display text-[64px] leading-none font-extrabold tabular-nums">{r.room?.number}</p>
         <p className="mt-2 flex items-center gap-1.5 text-sm text-muted">
-          <MapPin className="size-4" aria-hidden="true" /> Floor {r.room?.floor}
+          <MapPin className="size-4" aria-hidden="true" /> {floorLabel(r.room?.floor)}
           {r.room?.landmark ? ` · ${r.room.landmark}` : ""}
         </p>
         <h1 className="mt-4 flex items-center gap-2 font-display text-xl font-extrabold">

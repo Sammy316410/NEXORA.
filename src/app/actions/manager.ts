@@ -172,6 +172,6 @@ export async function resetDemoAction(): Promise<ActionResult> {
     const result = await seedDemo(db(), { password: process.env.DEMO_STAFF_PASSWORD || "nexora-demo-2026" });
     await ping([{ topic: topics.hotel(result.hotelId), payload: { kind: "reset" } }]);
     revalidatePath("/", "layout");
-    return { ok: true, message: `Demo reset: ${result.requests} requests rebuilt. Request codes restart at NX-1042.` };
+    return { ok: true, message: `Demo reset: back to the ${result.requests} real requests. New request codes start at NX-1042.` };
   });
 }

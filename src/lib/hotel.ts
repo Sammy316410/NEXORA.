@@ -7,7 +7,7 @@ import { todayISO } from "./format";
 import type { Actor, Guest, Hotel, Reservation, Room, RoomStatus, Service, Staff } from "./types";
 
 export async function getHotel(): Promise<Hotel> {
-  const slug = process.env.NEXORA_HOTEL_SLUG?.trim() || "amber-coast";
+  const slug = process.env.NEXORA_HOTEL_SLUG?.trim() || "villa-monument";
   const { data } = await db().from("hotels").select("*").eq("slug", slug).maybeSingle();
   if (data) return data as Hotel;
   const { data: first } = await db().from("hotels").select("*").order("created_at").limit(1).maybeSingle();

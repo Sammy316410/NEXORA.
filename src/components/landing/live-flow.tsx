@@ -70,7 +70,7 @@ export function LiveFlow() {
       <div className="grid items-center gap-6 lg:grid-cols-[1fr_1.35fr_1fr]">
         {/* Guest phone */}
         <Phone label="Guest · Room portal" tint="from-teal-500/20">
-          <p className="text-[11px] font-semibold tracking-wider text-teal-300 uppercase">Amber Coast · Room {s.room}</p>
+          <p className="text-[11px] font-semibold tracking-wider text-teal-300 uppercase">Room {s.room}</p>
           <p className="mt-1 font-display text-lg font-extrabold text-white">Hi {s.guest} 👋</p>
           <div className="mt-4 flex justify-end">
             <p key={`ask-${i}`} className="max-w-[85%] animate-rise rounded-2xl rounded-br-md bg-teal-500 px-3 py-2 text-[13px] leading-snug text-white">

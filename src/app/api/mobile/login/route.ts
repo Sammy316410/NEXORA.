@@ -2,10 +2,11 @@ import { db } from "@/lib/db";
 import { getHotel } from "@/lib/hotel";
 import { mobile, MobileAuthError, publicAuth, staffForUser } from "@/lib/mobile-auth";
 import type { Staff } from "@/lib/types";
+import { STAFF_EMAIL_DOMAIN } from "@/lib/seed/catalog";
 
 // POST { email, password }  -> session tokens and the staff profile.
 // POST { refreshToken }     -> fresh tokens (access tokens last about an hour).
-// POST { demo: "amaka" }    -> demo mode only (NEXORA_DEMO_MODE=true): one tap opens
+// POST { demo: "porter" }   -> demo mode only (NEXORA_DEMO_MODE=true): one tap opens
 //                              the app as a seeded staff member, like /auth/demo on the web.
 export async function POST(req: Request) {
   return mobile(async () => {
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
     } else if (body.demo) {
       if (process.env.NEXORA_DEMO_MODE !== "true") throw new MobileAuthError("Demo sign-in is switched off.", 403);
       const who = body.demo.toLowerCase().replace(/[^a-z]/g, "");
-      const { data } = await db().from("staff").select("*").eq("email", `${who}@ambercoast.demo`).maybeSingle();
+      const { data } = await db().from("staff").select("*").eq("email", `${who}${STAFF_EMAIL_DOMAIN}`).maybeSingle();
       const staff = data as Staff | null;
       if (!staff) throw new MobileAuthError("That demo profile doesn't exist. Run the seed first.", 404);
       if (!staff.user_id) throw new MobileAuthError("That demo profile has no login yet. Run the seed first.", 404);

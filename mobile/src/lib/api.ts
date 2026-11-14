@@ -136,7 +136,7 @@ export async function signIn(email: string, password: string): Promise<Session> 
   return s;
 }
 
-/** Demo mode only: one tap opens the app as a seeded staff member (e.g. "amaka"). */
+/** Demo mode only: one tap opens the app as a seeded staff member (e.g. "porter"). */
 export async function signInDemo(who: string): Promise<Session> {
   const s = await post<Session>("/api/mobile/login", { demo: who });
   await saveSession(s);

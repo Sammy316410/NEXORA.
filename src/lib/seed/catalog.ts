@@ -1,23 +1,30 @@
-// The demo hotel: Amber Coast Hotel (fictional), Lagos. Names and naira suit a
-// Lagos judging panel; swap them for a real pilot hotel.
+// The demo hotel: Villa Monument, Victoria Island, Lagos, as the team saw it
+// on 13 Nov 2026. Room and amenity names come from the hotel's public room
+// card. Staff are added by role only (they did not give their names), with
+// placeholder @mockmail.com emails. Room rates and menu prices are SAMPLES:
+// the hotel's real prices were not collected. Not affiliated with the hotel.
 
 export const HOTEL = {
-  slug: "amber-coast",
-  name: "Amber Coast Hotel",
-  short_name: "Amber Coast",
+  slug: "villa-monument",
+  name: "Villa Monument (demo)",
+  short_name: "Villa Monument",
   accent_color: "#0F766E",
   canvas_color: "#FBF8F3",
   timezone: "Africa/Lagos",
   currency: "NGN",
   check_in_time: "14:00",
   check_out_time: "12:00",
-  wifi_name: "AmberCoast-Guest",
-  wifi_password: "welcome2026",
-  phone: "+234 700 000 0204",
-  whatsapp: "+234 700 000 0205",
-  address: "12 Ozumba Mbadiwe Avenue, Victoria Island, Lagos",
-  breakfast_hours: "06:30–10:30",
+  wifi_name: null,
+  wifi_password: null,
+  phone: null,
+  whatsapp: null,
+  address: "Victoria Island, Lagos",
+  breakfast_hours: null,
 };
+
+/** The hotel Amber Coast demo this replaced; the seed deletes it and its demo logins. */
+export const LEGACY_HOTEL_SLUG = "amber-coast";
+export const LEGACY_EMAIL_DOMAIN = "@ambercoast.demo";
 
 export const DEPARTMENTS = [
   { id: "housekeeping", name: "Housekeeping", sort: 1 },
@@ -80,63 +87,30 @@ export const SERVICES = SERVICE_LIST.map((s, i) => ({
   ...s,
 }));
 
+/** Demo sign-in uses the part before the @ (e.g. /auth/demo?as=porter). */
+export const STAFF_EMAIL_DOMAIN = "@mockmail.com";
+
 export const STAFF = [
-  { full_name: "Grace Bello", email: "grace@ambercoast.demo", role: "front_desk", job_title: "Front desk lead", department_id: "front_desk", on_duty: true },
-  { full_name: "Funmi Adeyemi", email: "funmi@ambercoast.demo", role: "manager", job_title: "General manager", department_id: null, on_duty: true },
-  { full_name: "Ngozi Okoro", email: "ngozi@ambercoast.demo", role: "front_desk", job_title: "Receptionist", department_id: "front_desk", on_duty: false },
-  { full_name: "Amaka Obi", email: "amaka@ambercoast.demo", role: "staff", job_title: "Room attendant", department_id: "housekeeping", on_duty: true },
-  { full_name: "Ibrahim Musa", email: "ibrahim@ambercoast.demo", role: "staff", job_title: "Room attendant", department_id: "housekeeping", on_duty: true },
-  { full_name: "Bisi Alade", email: "bisi@ambercoast.demo", role: "staff", job_title: "Room attendant", department_id: "housekeeping", on_duty: true },
-  { full_name: "Halima Yusuf", email: "halima@ambercoast.demo", role: "staff", job_title: "Room attendant", department_id: "housekeeping", on_duty: false },
-  { full_name: "Tunde Bakare", email: "tunde@ambercoast.demo", role: "staff", job_title: "Technician", department_id: "maintenance", on_duty: true },
-  { full_name: "Yemi Ogun", email: "yemi@ambercoast.demo", role: "staff", job_title: "Technician", department_id: "maintenance", on_duty: false },
-  { full_name: "Chidi Okeke", email: "chidi@ambercoast.demo", role: "staff", job_title: "Room service", department_id: "food", on_duty: true },
-  { full_name: "Kunle Ade", email: "kunle@ambercoast.demo", role: "staff", job_title: "Room service", department_id: "food", on_duty: true },
+  { full_name: "Receptionist", email: "receptionist@mockmail.com", role: "front_desk", job_title: "Front desk receptionist", department_id: "front_desk", on_duty: true },
+  { full_name: "Porter", email: "porter@mockmail.com", role: "staff", job_title: "Porter, lounge", department_id: "food", on_duty: true },
+  { full_name: "Duty manager", email: "manager@mockmail.com", role: "manager", job_title: "Duty manager (played by the NEXORA team)", department_id: null, on_duty: true },
 ] as const;
 
-// x01-x03 Standard Queen, x04-x09 Deluxe King (so 204 matches the brief), x10-x12 Executive Suite.
-export const ROOM_TYPES = [
-  { upTo: 3, type: "Standard Queen", rate: 65000 },
-  { upTo: 9, type: "Deluxe King", rate: 85000 },
-  { upTo: 12, type: "Executive Suite", rate: 150000 },
+/** Sample nightly rate in naira: the hotel's real rates were not collected. */
+export const SAMPLE_RATE = 85000;
+
+/** Floor 0 = guest rooms, -1 = amenities (floors were not collected). */
+export const ROOMS: { number: string; floor: number; room_type: string; rate: number }[] = [
+  ...["Catalan", "Westminster", "Florence", "Rouge", "Empire", "Orient", "Ile Ife", "Pyramid", "Fantasia", "Safari", "Ocean Jewel", "Burj Khalifa"].map(
+    (number) => ({ number, floor: 0, room_type: "Guest room", rate: SAMPLE_RATE }),
+  ),
+  ...["Villa 24 Lounge", "Fitness Villa", "The Boardroom", "Garden Terrace"].map((number) => ({ number, floor: -1, room_type: "Amenity", rate: 0 })),
 ];
 
-export const ROOM_OVERRIDES: Record<string, { status: "available" | "cleaning" | "maintenance"; note?: string }> = {
-  "409": { status: "maintenance", note: "AC compressor being replaced" },
-  "207": { status: "cleaning" },
-  "311": { status: "cleaning" },
-  "103": { status: "available" },
-  "106": { status: "available" },
-  "110": { status: "available" },
-  "202": { status: "available" },
-  "212": { status: "available" },
-  "304": { status: "available" },
-  "308": { status: "available" },
-  "402": { status: "available" },
-  "411": { status: "available" },
-};
+/** The team's own stay: the guest who can sign in to the guest portal. */
+export const TEAM_GUEST = { room: "Westminster", first: "TEAM_FIRST_NAME", last: "TEAM_LAST_NAME", bookingRef: "VM-WESTMINSTER" };
 
-/** Named guests the brief and demo script refer to. */
-export const NAMED_GUESTS: Record<string, { title: string; first: string; last: string; nightsBefore: number; nightsAfter: number }> = {
-  "204": { title: "Mr.", first: "David", last: "Okafor", nightsBefore: 0, nightsAfter: 3 },
-  "310": { title: "Ms.", first: "Sarah", last: "Lawson", nightsBefore: 1, nightsAfter: 2 },
-  "112": { title: "Mrs.", first: "Kemi", last: "Adebayo", nightsBefore: 2, nightsAfter: 1 },
-  "305": { title: "Mr.", first: "James", last: "Carter", nightsBefore: 1, nightsAfter: 3 },
-  "208": { title: "Mrs.", first: "Fatima", last: "Sani", nightsBefore: 2, nightsAfter: 0 },
-  "401": { title: "Mr.", first: "Emeka", last: "Eze", nightsBefore: 1, nightsAfter: 2 },
-};
-
-export const OTHER_GUESTS: [string, string][] = [
-  ["Tolu", "Bankole"], ["Aisha", "Lawal"], ["Chinedu", "Nwosu"], ["Zainab", "Abubakar"], ["Olumide", "Coker"],
-  ["Ifeoma", "Chukwu"], ["Musa", "Danjuma"], ["Yetunde", "Ojo"], ["Kwame", "Mensah"], ["Ama", "Owusu"],
-  ["Daniel", "Brooks"], ["Priya", "Nair"], ["Lucas", "Silva"], ["Hannah", "Weber"], ["Femi", "Adeleke"],
-  ["Ngozi", "Umeh"], ["Segun", "Afolabi"], ["Rukayat", "Salami"], ["Obinna", "Nnaji"], ["Bukola", "Adewale"],
-  ["Ahmed", "Garba"], ["Chiamaka", "Obi"], ["Tobi", "Akinola"], ["Esther", "Johnson"], ["Victor", "Okon"],
-  ["Mariam", "Yakubu"], ["Peter", "Udoh"], ["Grace", "Etim"], ["Samuel", "Oduya"], ["Ada", "Nwankwo"],
-  ["Ibukun", "Fashola"], ["Kelechi", "Ibe"], ["Sade", "Ogunleye"], ["Moses", "Ekpo"], ["Halima", "Danladi"],
-];
-
-/** Room-service menu (prices in naira; stored in kobo). */
+/** Room-service menu: SAMPLE items and prices in naira (stored in kobo), not the hotel's real menu. */
 export const MENU = [
   { id: "jollof-chicken", name: "Jollof rice with chicken", description: "Smoky party jollof, grilled chicken, fried plantain", category: "mains", price: 8500 },
   { id: "fried-rice-beef", name: "Fried rice with beef", description: "With coleslaw and peppered beef", category: "mains", price: 8000 },
@@ -152,18 +126,3 @@ export const MENU = [
   { id: "soft-drink", name: "Soft drink", description: "Coke, Fanta or Sprite", category: "drinks", price: 1200 },
   { id: "coffee", name: "Coffee", description: "Americano or cappuccino", category: "drinks", price: 2000 },
 ] as const;
-
-/** Weighted mix for generated history (service id, weight). */
-export const HISTORY_MIX: [string, number][] = [
-  ["extra-towels", 20], ["room-cleaning", 17], ["toiletries", 11], ["food-order", 15], ["ac-cooling", 7],
-  ["tv-wifi", 6], ["drinking-water", 5], ["late-checkout", 5], ["leak", 3], ["power-lights", 3],
-  ["taxi", 4], ["luggage-help", 4], ["extra-pillows", 3], ["change-linen", 3],
-];
-
-export const DOWN_NOTES = [
-  "Towels were still damp",
-  "AC is still not cold",
-  "Food arrived cold",
-  "Took over an hour",
-  "Wi-Fi still drops",
-];
