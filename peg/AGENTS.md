@@ -1022,6 +1022,13 @@ check, or check with them:
 
 ## 16. Where to read more
 
+**In this repo:** a copy of the SDK docs is in `peg/docs/workpeg/`, and the
+`workpeg-docs` MCP server (`.mcp.json` at the repo root,
+`tools/workpeg-docs-mcp/server.mjs`) serves them to agents with `list_docs`,
+`search_docs` and `read_doc`. Search there before writing `workpeg.json`,
+actions, skills or CLI steps. Refresh the copy with
+`node tools/workpeg-docs-mcp/server.mjs --refresh`.
+
 The SDK's documentation is in its public repository,
 `https://gitlab.com/workpeg/workpeg-sdk/-/blob/main/docs/`. Fetch a page raw
 from `https://gitlab.com/workpeg/workpeg-sdk/-/raw/main/docs/<page>.md`.
