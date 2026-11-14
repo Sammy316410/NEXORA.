@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "workpeg-docs": {
+      "command": "node",
+      "args": ["tools/workpeg-docs-mcp/server.mjs"]
+    }
+  }
+}
