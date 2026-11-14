@@ -15,6 +15,7 @@ does the reverse.
   "summary":   "...",     // one line saying what your Peg is for
   "dev":       { ... },   // whether others may run dev pages on it
   "scopes":    [ ... ],   // platform surfaces beyond tables it asks for
+  "permissions": [ ... ], // what it asks each business to allow, and why
   "function":  { ... },   // only if you ship one
   "runtime":   { ... }
 }
@@ -33,6 +34,8 @@ Sections are independent. A Peg with no function omits `function` and
   fails the build.
 - `dev` is covered in [`dev`](#dev) below.
 - `scopes` is covered in [`scopes`](#scopes) below.
+- `permissions` is covered in [`permissions`](#permissions) below, and in
+  full in [Permissions](permissions.md).
 
 `workpeg ui build` copies every section but `function` and `runtime` into
 `dist/manifest.json`, which you upload to the CDN. A Peg that declares none
@@ -130,11 +133,14 @@ reach:
 | `calls` | `people/` and `signals/`: who works here, and call set-up ([Calls](rtc.md)) |
 | `files` | the business's Drive |
 | `mail` | the business's mail admin |
-| `inbound` | minting inbound keys on the Peg's own tables, so an outside service can add rows ([Let an outside service add rows](tables.md#let-an-outside-service-add-rows)) |
+| `inbound` | minting inbound keys on the Peg's own tables from its page, so an outside service can add rows ([Let an outside service add rows](tables.md#let-an-outside-service-add-rows)). A new Peg declares an `inbound` [permission](#permissions) instead. |
 
 - **Declaring a scope is half of it.** Workpeg also has to grant it to your
-  Peg. A page reaches a scope only when both are true, and gets
-  `"scope-not-declared"` otherwise.
+  Peg. A page reaches a scope only when both are true. Without both, a
+  `files`, `mail` or `calls` request is refused with the problem type
+  `"scope-not-declared"`, and an inbound key request with a plain `403`
+  whose `detail` says the Peg does not have the `"inbound"` scope; it
+  carries no problem type.
 - **A manifest without `scopes` withdraws every scope.** The platform reads
   `scopes` from the uploaded `manifest.json`, within five minutes of the
   upload, and a manifest that has none declares none. So keep the section in
@@ -145,6 +151,44 @@ reach:
 - The section is a list of the exact names above, in lower case, each once.
   Anything else fails the build, by name: the platform would drop a name it
   does not know without a word.
+
+---
+
+## `permissions`
+
+What your Peg asks each business to allow, each with one sentence saying
+why. An owner or admin answers on a screen Workpeg draws, at install or in
+Settings > Permissions:
+
+```json
+"permissions": [
+  {
+    "name": "instant_answers",
+    "kind": "inbound",
+    "purpose": "Adds each answer to Responses seconds after someone submits it.",
+    "ask": "install",
+    "inbound": {"table": "responses"}
+  }
+]
+```
+
+- `kind` is `"inbound"` today: a key that lets your own server add rows to
+  one of your tables, which Workpeg sends to your server's callback address
+  when somebody allows it. `location`, `share` and `apps` are reserved and
+  fail the build with "not available yet".
+- `ask` is `"install"` (the default) or `"settings"`.
+- At most 4 entries, and one `inbound` per table. The `purpose` is at most
+  160 bytes, with no address, invisible character or "Workpeg" in it.
+- Every mistake fails the build, by name. The platform checks the uploaded
+  manifest again, and reads a section it refuses as declaring nothing.
+- `"permissions": []` is kept in the built manifest. A manifest that stops
+  declaring a permission turns off every grant of it.
+- **Declaring is the first of three steps.** Workpeg also approves your Peg
+  to ask for the kind and sets your server's callback address. Until both
+  are done, the permission is listed nowhere.
+
+[Permissions](permissions.md) has the screen people see, what your server
+receives and how it must check it, and what stops a key.
 
 ---
 

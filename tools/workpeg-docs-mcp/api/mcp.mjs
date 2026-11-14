@@ -7,15 +7,30 @@ const RAW = "https://gitlab.com/workpeg/workpeg-sdk/-/raw/main/docs/";
 
 // Pages are fetched once per instance from the public SDK repo, so the
 // hosted copy is always current. The stdio server reads the repo's copy.
+const TREE = "https://gitlab.com/api/v4/projects/workpeg%2Fworkpeg-sdk/repository/tree?path=docs&per_page=100";
+
+// Every .md page in the SDK's docs folder, so new pages appear by themselves;
+// PAGE_NAMES if GitLab's listing is unavailable.
+async function pageNames() {
+  try {
+    const res = await fetch(TREE);
+    const items = res.ok ? await res.json() : [];
+    const names = items.filter((x) => x.type === "blob" && x.name.endsWith(".md")).map((x) => x.name.slice(0, -3));
+    return names.length ? names : PAGE_NAMES;
+  } catch {
+    return PAGE_NAMES;
+  }
+}
+
 let pagesPromise;
 function loadPages() {
-  pagesPromise ??= Promise.all(
-    PAGE_NAMES.map(async (name) => {
+  pagesPromise ??= pageNames().then((names) => Promise.all(
+    names.map(async (name) => {
       const res = await fetch(RAW + name + ".md");
       const text = await res.text();
       return res.ok && !/^\s*<(!doctype|html)/i.test(text) ? { name, text } : null;
     }),
-  )
+  ))
     .then((entries) => {
       const ok = entries.filter(Boolean);
       if (!ok.length) throw new Error("Could not load the Workpeg docs");

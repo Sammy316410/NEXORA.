@@ -359,7 +359,9 @@ Both also support `PATCH`/`DELETE` on `/{id}/` for a single grant.
 
 The first three are for a person in the Peg's own page; the last two are for
 the outside service. See
-[Let an outside service add rows](#let-an-outside-service-add-rows).
+[Let an outside service add rows](#let-an-outside-service-add-rows). A key
+that came by [permission](permissions.md) is never listed by the `GET`, and
+the `DELETE` answers `404` for it: only Settings > Permissions turns it off.
 
 ---
 
@@ -471,6 +473,14 @@ it is submitted, a shop posting each order. The table's save hooks run on
 each row, so your Peg reacts within seconds instead of waiting for a person
 to open it.
 
+!!! tip "A new Peg asks by permission"
+    Declare an `inbound` [permission](permissions.md) instead of making the
+    key on your Peg's page. An owner or admin allows it on a screen Workpeg
+    draws, and Workpeg sends the key to your server's callback address, so
+    the secret never passes through a page. The page-made keys below keep
+    working for the Pegs that use them, and are superseded for new ones. A
+    key either way does exactly what this section says.
+
 ### What a key can and cannot do
 
 A key can **add rows to the one table it was made for**, and ask which
@@ -481,7 +491,12 @@ business and table that is. Nothing else:
 - it cannot sign in, and no other Workpeg endpoint accepts it;
 - it stops working the moment it is revoked, when the person who made it
   leaves the business or loses write access to the table, or when the
-  business uninstalls the Peg.
+  business uninstalls the Peg, which revokes its keys (so a key answers
+  `401` from then on).
+- **withdrawing the `inbound` scope does not stop a key.** A manifest that
+  stops declaring the scope, or Workpeg taking the grant back, stops new keys
+  being made, but every key already made keeps working until it is revoked.
+  Revoke them first if they must stop.
 
 It writes as the person who made it, so a row it adds carries that person
 as its author. That person did not type the row: the save hooks are told so
@@ -549,6 +564,12 @@ the service and let it go: never put it in a `State`, a row or a log.
 its secret is gone with the local variable, so nobody can use it, but it
 stays live, and every retry would leave another until the table reaches 20.
 If the revoke fails too, `disconnect` still finds it by name.
+
+**Answer the handover with `200` and a JSON body.** `http.put` reads every
+`2xx` answer as JSON, so a service that answers `204 No Content`, or `200`
+with an empty or non-JSON body, makes `http.put` raise even though the
+service took the key, and `connect` then revokes the key the service has
+just stored. The service sees `401` on its first row.
 `get_inbound_keys` lists `{id, name, created_at, last_used_at, uses,
 revoked, created_by}` and never a secret. `revoke_inbound_key` answers
 `{"revoked": true}`, the same again if the key was already revoked.
@@ -573,7 +594,9 @@ curl -X POST https://api.workpeg.com/v1/inbound/rows/ \
   retry safe: the same key twice adds one row.
 - `GET /v1/inbound/whoami/` answers `{"key", "business", "table"}` and writes
   nothing, so the service can check where a key it was given writes before
-  it relies on it.
+  it relies on it. A key that came by [permission](permissions.md) answers
+  `"grant"` and `"sequence"` too, and its first `whoami` is what confirms it
+  arrived.
 - The api is for servers. A request that carries an `Origin` header, which
   every browser sends, is refused.
 
@@ -582,8 +605,9 @@ curl -X POST https://api.workpeg.com/v1/inbound/rows/ \
 | `201` | The row was added: `{"id", "business", "table"}`. |
 | `200` | A retry of an `Idempotency-Key` already written; the same answer, no new row. |
 | `400` | The body is not `{"data": {...}}`, or a `data` key is not a column of the table. |
-| `401` | The key is unknown, malformed or revoked. All three read the same. |
-| `403` | The key is fine but may not write now: its maker left or lost access, the table moved or is no longer allowed, the Peg is not installed or not enabled, or the request came from a browser. |
+| `401` | The key is unknown, malformed or revoked. All three read the same. Uninstalling the Peg revokes its keys, so a key answers `401` after an uninstall. A key from a [permission](permissions.md) is revoked, and answers `401`, once the permission is turned off or decided again, once a Renew or Retry delivered its replacement, or once the person who allowed it stops being an owner or admin or leaves. |
+| `403` | The key is fine but may not write now: its maker left or lost access, the table moved or is no longer allowed, the Peg is not installed or is switched off or read-only in the business, or the request came from a browser. A key from a permission also answers `403` while Workpeg has the permission paused, when your Peg no longer asks for it or its callback changed, or when the person who allowed it can no longer add rows to the table (or lost their role a moment before Workpeg noticed). The answer's `detail` says which. |
+| `413` | The body is larger than 256 KiB. |
 | `409` | The same `Idempotency-Key` is still being written; try again after `Retry-After`. |
 | `422` | The table's pre-save hook refused the row. The hook's own words are never sent back. |
 | `429` | Too many requests: 120 a minute per key, 240 a minute per table, and 30 bad keys a minute from one address. |

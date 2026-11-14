@@ -1,2 +1,2 @@
-// The SDK doc pages the hosted server fetches when it has no bundle.
-export const PAGE_NAMES = ["agents", "architecture", "calendar-library", "cdn", "core-concepts", "data-realtime", "dates", "dev-install", "examples", "function-base", "functions", "getting-started", "hooks", "index", "libraries", "manifest", "projects", "reference", "routing", "rtc", "schema-ui", "sign-in-with-workpeg", "skills", "state-components", "styling", "table-changes", "tables", "widgets"];
+// The SDK doc pages the hosted server fetches if GitLab cannot list them.
+export const PAGE_NAMES = ["agents","architecture","calendar-library","cdn","commands","core-concepts","data-realtime","dates","dev-install","dev_functions_wire","examples","function-base","functions","getting-started","hooks","index","libraries","manifest","permissions","projects","reference","routing","rtc","schema-ui","sign-in-with-workpeg","skills","state-components","styling","table-changes","tables","widgets"];

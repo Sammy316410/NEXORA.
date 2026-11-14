@@ -686,6 +686,8 @@ These commands run an unreleased peg on its own computer, run its
 function there for your own saves, and clean up after it.
 [Test a peg before release](dev-install.md) is the full guide: every
 option, every check made before anything starts, and every refusal.
+Every option of these and of every other command is listed in the
+[Command cheatsheet](commands.md).
 
 | Command | What it does |
 | --- | --- |

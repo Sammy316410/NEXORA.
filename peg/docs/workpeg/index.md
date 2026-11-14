@@ -37,7 +37,7 @@ minor release may include breaking changes — each is marked **BREAKING** in th
 read the entry before upgrading:
 
 ```bash
-pip install "workpeg~=0.163.0"   # takes patch releases, never the next minor
+pip install "workpeg~=0.165.0"   # takes patch releases, never the next minor
 ```
 
 ## CLI at a glance
