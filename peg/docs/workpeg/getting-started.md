@@ -172,6 +172,10 @@ workpeg ui build acme-crm/
 
 ## CLI
 
+This section covers the UI commands in depth. Every command and option the
+CLI has, the function, CDN and project ones included, is on one page in the
+[Command cheatsheet](commands.md).
+
 ### `workpeg ui new`
 
 ```text

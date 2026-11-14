@@ -22,8 +22,17 @@ export function readEntries() {
     .map((f) => ({ name: f.slice(0, -3), text: readFileSync(join(DOCS, f), "utf8") }));
 }
 
+const TREE = "https://gitlab.com/api/v4/projects/workpeg%2Fworkpeg-sdk/repository/tree?path=docs&per_page=100";
+
 async function refresh() {
-  for (const { name } of readEntries()) {
+  // Every page in the SDK's docs folder (new ones too), else the ones we have.
+  let names = readEntries().map((e) => e.name);
+  try {
+    const res = await fetch(TREE);
+    const listed = res.ok ? (await res.json()).filter((x) => x.type === "blob" && x.name.endsWith(".md")).map((x) => x.name.slice(0, -3)) : [];
+    if (listed.length) names = listed;
+  } catch {}
+  for (const name of names) {
     const res = await fetch(RAW + name + ".md");
     const text = await res.text();
     if (res.ok && !/^\s*<(!doctype|html)/i.test(text)) {

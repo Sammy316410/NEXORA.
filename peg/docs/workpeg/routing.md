@@ -417,8 +417,13 @@ class Site(Router):
 ```
 
 **Reserved: `/b/<business>/chats/*` is Workpeg AI's.** The `chats` segment under
-every business belongs to the SDK — the router routes it itself, *inside your
-business shell*, so the rail stays around the AI surface. Declaring a route
+every business belongs to the SDK — the router routes it itself, as an
+*enforced page*: **none of your app runs there**. Your business shell, its nav,
+`fixed` rows, `top_nav`, anything around its `Outlet` and its `on_mount` are not
+mounted on these routes. If your shell draws the `Scaffold`, the SDK hosts the
+AI surface in its own shell with the same Workpeg chrome (Search, Workpeg AI,
+the business switcher, the Apps launcher); otherwise the surface is full-page.
+Leaving the chat mounts your shell again. Declaring a route
 there (`Route("/chats", …)` under a `/b/` shell, or any literal
 `/b/<id>/chats/...`) is a **compile error** — you can't shadow or bypass the AI
 space. The built-in **Workpeg AI** sidebar item opens `/chats/new` (a fresh

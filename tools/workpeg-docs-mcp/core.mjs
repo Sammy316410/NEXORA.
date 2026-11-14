@@ -93,13 +93,13 @@ function readDoc(pages, page, section) {
 export const TOOLS = [
   {
     name: "list_docs",
-    description: "List every Workpeg SDK documentation page (peg UI compiler, tables, manifest actions, skills, dev install, functions, CDN) with its title and section names.",
+    description: "List every Workpeg SDK documentation page (peg UI compiler, tables, manifest actions, skills, permissions, dev install, functions, CDN) with its title and section names.",
     inputSchema: { type: "object", properties: {} },
     annotations: { readOnlyHint: true },
   },
   {
     name: "search_docs",
-    description: "Search the Workpeg SDK docs. Returns the best-matching sections with a snippet and the read_doc call that opens each one. Use for questions like 'manifest actions not appearing', 'inbound keys', 'cdn logo path', 'fake-cloud'.",
+    description: "Search the Workpeg SDK docs. Returns the best-matching sections with a snippet and the read_doc call that opens each one. Use for questions like 'manifest actions not appearing', 'inbound permission', 'cdn logo path', 'fake-cloud'.",
     inputSchema: {
       type: "object",
       properties: {
@@ -164,8 +164,8 @@ export function handleMessage(pages, msg) {
         result: {
           protocolVersion: SUPPORTED.includes(asked) ? asked : SUPPORTED[0],
           capabilities: { tools: {} },
-          serverInfo: { name: "workpeg-docs", version: "1.1.0" },
-          instructions: "Workpeg SDK documentation. Search it before writing peg code, workpeg.json actions or skills, or CLI commands.",
+          serverInfo: { name: "workpeg-docs", version: "1.2.0" },
+          instructions: "Workpeg SDK documentation. Search it before writing peg code, workpeg.json actions, skills or permissions, or CLI commands.",
         },
       });
     }
