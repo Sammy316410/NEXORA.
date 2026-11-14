@@ -1,13 +1,10 @@
 {
   "namespace": "nexora",
-  "sdk": "0.163.0",
+  "sdk": "0.165.0",
   "summary": "Hospitality operations: guest requests routed to housekeeping, maintenance, kitchen and front desk, with rooms, staff on duty and who is handling what.",
   "dev": {
     "others": "deny"
   },
-  "scopes": [
-    "inbound"
-  ],
   "actions": [
     {
       "name": "list_requests",
@@ -212,6 +209,17 @@
         "peg_forms.list_responses",
         "peg_emails.send_email"
       ]
+    }
+  ],
+  "permissions": [
+    {
+      "name": "guest_requests",
+      "kind": "inbound",
+      "purpose": "Adds each request a guest sends from the room QR page to Guest requests, so the team sees it on the Board.",
+      "ask": "install",
+      "inbound": {
+        "table": "requests"
+      }
     }
   ]
 }
