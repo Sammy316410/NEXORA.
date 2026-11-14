@@ -2,12 +2,16 @@
 from workpeg.ui import (
     App, ListView, State, Padding, Column, Row, Container, ConstrainedBox, Expanded,
     Spacer, Text, Button, Input, TextArea, Select, Divider, Link, Modal,
-    biz_url, dates, navigate, route, set_title, store, toast, workpeg,
+    biz_url, dates, navigate, route, set_title, store, toast, user, workpeg,
 )
 
 from components import (
     DeptTag, ErrorState, LoadingState, PriorityTag, StatusTag,
 )
+
+# The "you have a task" email is sent from this address: it must be on a
+# domain the business has verified for Workpeg mail. Same as board.py.
+SENDER = "nexora@nexpeg.xyz"
 
 
 class RequestPage(App):
@@ -23,6 +27,11 @@ class RequestPage(App):
     error = State("")
     busy = State(False)
     confirming = State(False)
+    # Roles come from the Staff page, matched by sign-in email. The desk (team
+    # Front desk) and anyone not on the Staff page (owner, manager) can assign,
+    # reassign, cancel and reopen; everyone else only works their own tasks.
+    me = State("")
+    is_desk = State(True)
 
     async def on_mount(self):
         # route.* is a live read of the URL: capture it before any await.
@@ -47,6 +56,13 @@ class RequestPage(App):
         if len(found) == 0:
             return
         people = await workpeg.get_rows(found[0]["uuid"], limit=200)
+        self.me = user.email.strip().lower()
+        mine = next((p for p in people
+                     if self.me != ""
+                     and p["data"].get("email", "").strip().lower() == self.me),
+                    None)
+        self.is_desk = (mine is None
+                        or mine["data"].get("department", "") == "front_desk")
         dept = self.row["data"].get("department", "")
         # On duty in this request's team first, then everyone else on duty.
         team = [p for p in people if p["data"].get("on_duty", False)
@@ -115,7 +131,23 @@ class RequestPage(App):
             toast(e.message, kind="danger")
         self.busy = False
 
+    def can_work(self):
+        """The desk, or the person this request is assigned to."""
+        mine = self.row["data"].get("assignee_email", "").strip().lower()
+        return self.is_desk or (self.me != "" and mine == self.me)
+
+    def only_desk(self):
+        toast("Only the front desk or a manager can do that.", kind="warning")
+
+    def not_yours(self):
+        who = self.row["data"].get("assignee", "")
+        toast(f"This is assigned to {who}. Only they or the desk can update "
+              "it.", kind="warning")
+
     async def assign(self):
+        if not self.is_desk:
+            self.only_desk()
+            return
         person = next((p for p in self.staff
                        if p["data"]["name"] == self.pick), None)
         if person is None:
@@ -125,15 +157,89 @@ class RequestPage(App):
                           "assignee": person["data"]["name"],
                           "assignee_email": person["data"].get("email", "")},
                          f"Assigned to {person['data']['name']}")
+        if self.row["data"].get("assignee", "") == person["data"]["name"]:
+            problem = await self.notify(person, self.row["data"])
+            if problem == "":
+                toast(f"{person['data']['name']} has been emailed.",
+                      kind="success")
+            else:
+                toast(f"The email was not sent: {problem}", kind="warning")
+
+    async def mail_table(self):
+        # Saving a row here sends it: the table's pre-save hook is Workpeg's
+        # built-in send_email. Same table as board.py.
+        found = await workpeg.get_tables("nexora_mail")
+        if len(found) > 0:
+            return found[0]["uuid"]
+        made = await workpeg.create_table({
+            "name": "NEXORA notifications",
+            "alias": "nexora_mail",
+            "namespace": "nexora_mail",
+            "permission": "760",
+            "pre_save_hook": "default.send_email",
+            "columns": [
+                {"id": "to", "name": "To", "type": "many_to_many",
+                 "metadata": {"datatype": "text"}, "position": 1000},
+                {"id": "from", "name": "From", "type": "text",
+                 "position": 2000},
+                {"id": "subject", "name": "Subject", "type": "text",
+                 "position": 3000},
+                {"id": "plain_text", "name": "Body", "type": "text",
+                 "position": 4000},
+                {"id": "message_id", "name": "Message id", "type": "text",
+                 "position": 5000},
+            ],
+        })
+        return made["uuid"]
+
+    async def notify(self, person, data):
+        """Email the person their new task. Returns "" or what went wrong."""
+        email = person["data"].get("email", "").strip()
+        name = person["data"].get("name", "")
+        if "@" not in email:
+            return f"{name} has no email on the Staff page"
+        room = data.get("room", "")
+        title = data.get("title", "")
+        team = self.team_name(data.get("department", ""))
+        priority = data.get("priority", "normal")
+        body = (f"Hi {name},\n\nYou have a new task in NEXORA.\n\n"
+                f"Room: {room}\nRequest: {title}\nTeam: {team}\n"
+                f"Priority: {priority}\n\n"
+                "Open My tasks in NEXORA to start it.\n")
+        try:
+            table = await self.mail_table()
+            await workpeg.add_row(table, {"data": {
+                "to": [email],
+                "from": SENDER,
+                "subject": f"New task: {room} - {title}",
+                "plain_text": body,
+            }})
+            return ""
+        except Exception as e:
+            # A dev install's tables cannot carry Workpeg's built-in
+            # send_email hook (the platform answers 400). Released, they can.
+            if "400" in e.message:
+                return ("automatic emails start once NEXORA is released. "
+                        "For now, ask Workpeg AI to email them")
+            return e.message
 
     async def start(self):
+        if not self.can_work():
+            self.not_yours()
+            return
         await self.write({"status": "in_progress"}, "Started")
 
     async def complete(self):
+        if not self.can_work():
+            self.not_yours()
+            return
         await self.write({"status": "done", "note": self.note.strip()},
                          "Marked complete")
 
     async def reopen(self):
+        if not self.is_desk:
+            self.only_desk()
+            return
         await self.write({"status": "new", "assignee": "",
                           "assignee_email": ""}, "Reopened")
 
@@ -145,6 +251,9 @@ class RequestPage(App):
 
     async def cancel_request(self):
         self.confirming = False
+        if not self.is_desk:
+            self.only_desk()
+            return
         await self.write({"status": "cancelled", "note": self.note.strip()},
                          "Request cancelled")
 
@@ -221,7 +330,8 @@ class RequestPage(App):
                                     Button("Cancel request",
                                            variant="outline-gray", error=True,
                                            on_click=self.ask_cancel,
-                                           visible=self.status != "done"
+                                           visible=self.is_desk
+                                           and self.status != "done"
                                            and self.status != "cancelled"),
                                     Spacer(),
                                     self.next_button(),
@@ -258,6 +368,8 @@ class RequestPage(App):
     def assign_block(self):
         if self.status == "done" or self.status == "cancelled":
             return Text("")
+        elif not self.is_desk:
+            return Text("The front desk assigns requests.", variant="muted")
         elif len(self.staff_options) == 0:
             return Text("Nobody is on duty. Add staff, or switch someone on "
                         "duty, on the Staff page.", variant="muted")
@@ -282,6 +394,12 @@ class RequestPage(App):
     def next_button(self):
         if self.busy:
             return Button("Saving...", disabled=True)
+        elif ((self.status == "done" or self.status == "cancelled")
+              and not self.is_desk):
+            return Text("")
+        elif not self.can_work():
+            return Text("Only the person assigned, or the desk, can update "
+                        "this.", variant="muted")
         elif self.status == "assigned":
             return Button("Start", icon="player-play", on_click=self.start)
         elif self.status == "in_progress":
